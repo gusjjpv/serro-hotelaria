@@ -1,0 +1,31 @@
+@startuml
+
+left to right direction
+
+actor "Hospede" as hospede
+
+rectangle "UC01 - Hospede"{
+    usecase "Visualizar quartos disponiveis" as visualizar_quartos
+    usecase "Visualizar reservas" as visualizar_reservas
+    usecase "Realizar reserva" as realizar_reserva
+    usecase "Cancelar reserva" as cancelar_reserva
+    usecase "Realizar Check-in" as realizar_checkin
+    usecase "Realizar Check-out" as realizar_checkout
+    usecase "Visualizar extrato da conta do quarto" as visualizar_extrato
+    usecase "Pagar despesas e diarias" as pagar_despesas
+    usecase "Solicitar servicos de quarto" as solicitar_servicos
+}
+
+hospede -- visualizar_quartos
+visualizar_quartos <.. realizar_reserva: <<extends>>
+hospede -- visualizar_reservas
+visualizar_reservas ..> cancelar_reserva: <<extends>>
+visualizar_reservas <.. realizar_checkin: <<extends>>
+visualizar_reservas <.. realizar_checkout: <<extends>>
+
+hospede -- visualizar_extrato
+visualizar_extrato <.. pagar_despesas: <<extends>>
+
+hospede -- solicitar_servicos
+
+@enduml
