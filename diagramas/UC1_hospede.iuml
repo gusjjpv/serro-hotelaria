@@ -19,7 +19,7 @@ rectangle "UC01 - Hospede"{
 hospede -- visualizar_quartos
 visualizar_quartos <.. realizar_reserva: <<extends>>
 hospede -- visualizar_reservas
-visualizar_reservas ..> cancelar_reserva: <<extends>>
+visualizar_reservas <.. cancelar_reserva: <<extends>>
 visualizar_reservas <.. realizar_checkin: <<extends>>
 visualizar_reservas <.. realizar_checkout: <<extends>>
 

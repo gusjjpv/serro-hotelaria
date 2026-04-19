@@ -1,0 +1,32 @@
+@startuml
+
+left to right direction
+actor "Gerente" as gerente
+
+rectangle "UC02 - Gestao"{
+    usecase "visualizar quartos disponiveis" as visualizar_quartos
+    usecase "cadastrar quartos" as cadastrar_quartos
+    usecase "atualizar quartos" as atualizar_quartos
+    usecase "remover quartos" as remover_quartos
+    usecase "visualizar dashboard" as visualizar_dashboard
+    usecase "gerar relatorio" as gerar_relatorio
+    usecase "gerar relarotio de ocupacao" as gerar_relatorio_ocupacao
+    usecase "gerar relarotio de faturamento" as gerar_relatorio_faturamento
+    usecase "gerir tarifas" as gerir_tarifas
+}
+
+gerente -- visualizar_quartos
+visualizar_quartos <.. cadastrar_quartos: <<extends>>
+visualizar_quartos <.. atualizar_quartos: <<extends>>
+visualizar_quartos <.. remover_quartos: <<extends>>
+
+gerente -- visualizar_dashboard
+
+gerente -- gerar_relatorio
+gerar_relatorio <|-- gerar_relatorio_ocupacao
+gerar_relatorio <|-- gerar_relatorio_faturamento
+
+gerente -- gerir_tarifas
+
+
+@enduml
