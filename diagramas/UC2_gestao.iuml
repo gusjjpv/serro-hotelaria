@@ -1,32 +1,26 @@
 @startuml
-
 left to right direction
-actor "Gerente" as gerente
 
-rectangle "UC02 - Gestão"{
-    usecase "Visualizar quartos disponíveis" as visualizar_quartos
-    usecase "Cadastrar quartos" as cadastrar_quartos
-    usecase "Atualizar quartos" as atualizar_quartos
-    usecase "Remover quartos" as remover_quartos
-    usecase "Visualizar dashboard" as visualizar_dashboard
-    usecase "Gerar relatório" as gerar_relatorio
-    usecase "Gerar relatório de ocupaçao" as gerar_relatorio_ocupacao
-    usecase "Gerar relatório de faturamento" as gerar_relatorio_faturamento
-    usecase "Gerir tarifas" as gerir_tarifas
+actor "Gestor" as g
+
+rectangle "Sistema SERRÔ - Módulo de Gestão e BI" {
+    usecase "Autenticar Gestor" as auth
+    
+        usecase "Consultar Dashboard Geral" as uc17
+        usecase "Gerar Relatório de Faturamento" as uc18
+        usecase "Gerar Relatório de Ocupação" as uc19
+        usecase "Gerenciar Tarifas de Temporada" as uc20
+
+
+    g -- uc17
+    g -- uc18
+    g -- uc19
+    g -- uc20
+
+    uc17 ..> auth : <<include>>
+    uc18 ..> auth : <<include>>
+    uc19 ..> auth : <<include>>
+    uc20 ..> auth : <<include>>
 }
-
-gerente -- visualizar_quartos
-visualizar_quartos <.. cadastrar_quartos: <<extends>>
-visualizar_quartos <.. atualizar_quartos: <<extends>>
-visualizar_quartos <.. remover_quartos: <<extends>>
-
-gerente -- visualizar_dashboard
-
-gerente -- gerar_relatorio
-gerar_relatorio <|-- gerar_relatorio_ocupacao
-gerar_relatorio <|-- gerar_relatorio_faturamento
-
-gerente -- gerir_tarifas
-
 
 @enduml
