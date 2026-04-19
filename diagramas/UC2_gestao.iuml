@@ -3,16 +3,16 @@
 left to right direction
 actor "Gerente" as gerente
 
-rectangle "UC02 - Gestao"{
-    usecase "visualizar quartos disponiveis" as visualizar_quartos
-    usecase "cadastrar quartos" as cadastrar_quartos
-    usecase "atualizar quartos" as atualizar_quartos
-    usecase "remover quartos" as remover_quartos
-    usecase "visualizar dashboard" as visualizar_dashboard
-    usecase "gerar relatorio" as gerar_relatorio
-    usecase "gerar relarotio de ocupacao" as gerar_relatorio_ocupacao
-    usecase "gerar relarotio de faturamento" as gerar_relatorio_faturamento
-    usecase "gerir tarifas" as gerir_tarifas
+rectangle "UC02 - Gestão"{
+    usecase "Visualizar quartos disponíveis" as visualizar_quartos
+    usecase "Cadastrar quartos" as cadastrar_quartos
+    usecase "Atualizar quartos" as atualizar_quartos
+    usecase "Remover quartos" as remover_quartos
+    usecase "Visualizar dashboard" as visualizar_dashboard
+    usecase "Gerar relatório" as gerar_relatorio
+    usecase "Gerar relatório de ocupaçao" as gerar_relatorio_ocupacao
+    usecase "Gerar relatório de faturamento" as gerar_relatorio_faturamento
+    usecase "Gerir tarifas" as gerir_tarifas
 }
 
 gerente -- visualizar_quartos

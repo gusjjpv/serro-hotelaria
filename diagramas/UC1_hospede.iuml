@@ -2,30 +2,37 @@
 
 left to right direction
 
-actor "Hospede" as hospede
+actor "Usuário" as usuario
+actor "Hóspede" as hospede
 
-rectangle "UC01 - Hospede"{
-    usecase "Visualizar quartos disponiveis" as visualizar_quartos
-    usecase "Visualizar reservas" as visualizar_reservas
+rectangle "Caso de uso - Hóspede"{
+    usecase "Autenticar Hóspede" as autenticar_hospede
+    usecase "Visualizar Disponibilidade de Quartos" as visualizar_disponibilidade
+    usecase "Verificar Disponibilidade" as verificar_disponibilidade
     usecase "Realizar reserva" as realizar_reserva
     usecase "Cancelar reserva" as cancelar_reserva
     usecase "Realizar Check-in" as realizar_checkin
-    usecase "Realizar Check-out" as realizar_checkout
-    usecase "Visualizar extrato da conta do quarto" as visualizar_extrato
-    usecase "Pagar despesas e diarias" as pagar_despesas
-    usecase "Solicitar servicos de quarto" as solicitar_servicos
+    usecase "Consultar Extrato de Consumo" as consultar_extrato
+    usecase "Realizar Pagamento" as realizar_pagamento
+    usecase "Solicitar serviços de quarto" as solicitar_servicos
 }
 
-hospede -- visualizar_quartos
-visualizar_quartos <.. realizar_reserva: <<extends>>
-hospede -- visualizar_reservas
-visualizar_reservas <.. cancelar_reserva: <<extends>>
-visualizar_reservas <.. realizar_checkin: <<extends>>
-visualizar_reservas <.. realizar_checkout: <<extends>>
-
-hospede -- visualizar_extrato
-visualizar_extrato <.. pagar_despesas: <<extends>>
-
+usuario -- visualizar_disponibilidade
+hospede -- realizar_reserva
+realizar_reserva ..> verificar_disponibilidade : <<include>>
+hospede -- cancelar_reserva
+hospede -- realizar_checkin
+hospede -- consultar_extrato
+hospede -- realizar_pagamento
 hospede -- solicitar_servicos
+
+realizar_reserva ..> autenticar_hospede : <<include>>
+cancelar_reserva ..> autenticar_hospede : <<include>>
+realizar_checkin ..> autenticar_hospede : <<include>>
+consultar_extrato ..> autenticar_hospede : <<include>>
+realizar_pagamento ..> autenticar_hospede : <<include>>
+solicitar_servicos ..> autenticar_hospede : <<include>>
+
+usuario <|-up- hospede
 
 @enduml
