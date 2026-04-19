@@ -4,10 +4,10 @@ left to right direction
 actor "Gestor" as g
 actor "Supervisor" as supervisor
 
-rectangle "Sistema SERRÔ - Módulo de Gestão e BI" {
+rectangle "Caso de uso - Gestor" {
     usecase "Autenticar Gestor" as auth
     
-        usecase "Consultar Dashboard Geral" as uc17
+        usecase "Consultar Dashboard" as uc17
         usecase "Gerar Relatório de Faturamento" as uc18
         usecase "Gerar Relatório de Ocupação" as uc19
         usecase "Gerenciar Tarifas de Temporada" as uc20
