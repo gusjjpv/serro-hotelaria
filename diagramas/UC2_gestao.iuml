@@ -2,6 +2,7 @@
 left to right direction
 
 actor "Gestor" as g
+actor "Supervisor" as supervisor
 
 rectangle "Sistema SERRÔ - Módulo de Gestão e BI" {
     usecase "Autenticar Gestor" as auth
@@ -21,6 +22,8 @@ rectangle "Sistema SERRÔ - Módulo de Gestão e BI" {
     uc18 ..> auth : <<include>>
     uc19 ..> auth : <<include>>
     uc20 ..> auth : <<include>>
+
+    supervisor <|-right- g
 }
 
 @enduml
