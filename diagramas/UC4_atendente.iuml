@@ -1,0 +1,39 @@
+@startuml
+left to right direction
+
+actor "Usuário" as usuario
+actor "Atendente" as atendente
+
+usuario <|-right- atendente
+
+rectangle "Caso de uso - Atendente" {
+    usecase "Autenticar Usuário" as auth
+    
+    usecase "Consultar Cardápio e Serviços" as uc11
+    
+    package "Recepção e Governança" {
+        usecase "Gerenciar Check-in/out Presencial" as uc07
+        usecase "Manter Cadastro de Hóspedes" as uc08
+        usecase "Atualizar Status do Quarto (Limpeza/Ocupação)" as uc10
+    }
+
+    package "Restaurante e Serviços" {
+        usecase "Lançar Consumo na Conta do Quarto" as uc09
+        usecase "Gerenciar Contas de Clientes Externos" as uc12
+    }
+
+    usuario -right- uc11
+
+    atendente -- uc07
+    atendente -- uc08
+    atendente -- uc10
+    atendente -- uc09
+    atendente -- uc12
+
+    uc07 ..> auth : <<include>>
+    uc08 ..> auth : <<include>>
+    uc09 ..> auth : <<include>>
+    uc10 ..> auth : <<include>>
+    uc12 ..> auth : <<include>>
+}
+@enduml
