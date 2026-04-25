@@ -1,0 +1,91 @@
+@startuml
+skinparam style strictuml
+hide empty methods
+
+package "Controle de Acesso" {
+    ' Classe Base (Generalização)
+    class Usuario {
+      - nome: String
+      - email: String
+      - login: String
+      - senha: String
+    }
+
+    ' Especializações
+    class Hospede {
+      - cpf: String
+      - telefone: String
+    }
+
+    class Atendente {
+      - matricula: String
+    }
+
+    class Gestor {
+      - nivelPermissao: String
+    }
+
+    ' Relacionamentos de Herança
+    Usuario <|-- Hospede
+    Usuario <|-- Atendente
+    Usuario <|-- Gestor
+}
+
+package "Hospedagem e Infraestrutura" {
+    class CategoriaQuarto {
+      - nome: String
+      - capacidade: Integer
+      - precoDiaria: Double
+    }
+
+    class Quarto {
+      - numero: String
+      - status: String
+    }
+
+    class Reserva {
+      - dataEntrada: Date
+      - dataSaida: Date
+      - status: String
+    }
+
+    ' Relacionamentos de Negócio - Operação
+    Hospede "1" -- "*" Reserva : solicita >
+    Atendente "1" -- "*" Reserva : processa >
+    Gestor "1" -- "*" Quarto : gerencia >
+    Quarto "*" -- "1" CategoriaQuarto : pertence a >
+    Reserva "*" -- "1" Quarto : aloca >
+}
+
+package "Financeiro e PDV (Restaurante/Spa)" {
+    class ContaHospedagem {
+      - dataAbertura: Date
+      - totalAcumulado: Double
+      - status: String
+    }
+
+    class Pedido {
+      - dataHora: DateTime
+      - tipo: String
+    }
+
+    class ItemPedido {
+      - quantidade: Integer
+      - precoPraticado: Double
+    }
+
+    class Produto {
+      - nome: String
+      - categoria: String
+      - precoAtual: Double
+    }
+
+    ' Relacionamentos Financeiros
+    Reserva "1" -- "1" ContaHospedagem : possui >
+    Pedido "*" -- "0..1" ContaHospedagem : debita em >
+    Atendente "1" -- "*" Pedido : registra >
+    Pedido "1" -- "*" ItemPedido : contem >
+    ItemPedido "*" -- "1" Produto : refere-se a >
+}
+
+@enduml
