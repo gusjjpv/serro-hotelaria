@@ -1,9 +1,7 @@
 @startuml
-skinparam style strictuml
-hide empty methods
+show members
 
 package "Controle de Acesso" {
-    ' Classe Base (Generalização)
     class Usuario {
       - nome: String
       - email: String
@@ -11,10 +9,9 @@ package "Controle de Acesso" {
       - login: String
       - senha: String
       - dataNascimento: Date
-      - genero: Enum
+      - genero: String
       - endereco: String
       - cpf: String
-
 
       + cadastrarUsuario(): void
       + login(): boolean
@@ -22,82 +19,107 @@ package "Controle de Acesso" {
       + atualizarPerfil(): void
     }
 
-    ' Especializações
     class Hospede {
+      - pontosFidelidade: int
+
+      + consultarHistoricoEstadias(): List<Reserva>
     }
 
     class Atendente {
       - numeroDeCadastro: String
+      + realizarCheckIn(reserva: Reserva): void
+      + realizarCheckOut(reserva: Reserva): void
     }
 
     class Gestor {
       - nivelPermissao: String
+      + emitirRelatorioFaturamento(): void
+      + alterarTarifa(categoria: CategoriaQuarto, novoPreco: Double): void
     }
 
-    ' Relacionamentos de Herança
     Usuario <|-- Hospede
     Usuario <|-- Atendente
     Usuario <|-- Gestor
 }
 
 package "Hospedagem e Infraestrutura" {
+    enum StatusQuarto {
+      DISPONIVEL
+      OCUPADO
+      LIMPEZA
+      MANUTENCAO
+    }
+
+    enum StatusReserva {
+      PENDENTE
+      CONFIRMADA
+      FINALIZADA
+      CANCELADA
+    }
+
     class CategoriaQuarto {
       - nome: String
       - capacidade: Integer
       - precoDiaria: Double
 
-      + criarCategoria(nome: String, capacidade: Integer, precoDiaria: Double): void
-      + removerCategoria(): void
-      + atualizarCategoria(nome: String, capacidade: Integer, precoDiaria: Double): void
+      + criarCategoria(): void
+      + atualizarCategoria(nome: String, preco: Double): void
+      + removerCategoria(nome: String): void
     }
 
     class Quarto {
       - numero: String
-      - status: Enum
-    
-      + caadastrarQuarto(numero: String, categoria: CategoriaQuarto): void
-      + atualizarStatus(status: Enum): void
-      + removerQuarto(quarto: Quarto): void
-      + consultarDisponibilidade(): boolean
+      - status: StatusQuarto
 
+      + cadastrarQuarto(categoria: CategoriaQuarto): void
+      + atualizarStatus(novoStatus: StatusQuarto): void
+      + consultarDisponibilidade(): boolean
+      + removerQuarto(numero: String): void
     }
 
     class Reserva {
       - dataEntrada: Date
       - dataSaida: Date
-      - status: Enum
+      - status: StatusReserva
 
-      + criarReserva(hospede: Hospede, quarto: Quarto, dataEntrada: Date, dataSaida: Date): void
+      + criarReserva(hospede: Hospede, quarto: Quarto): void
       + cancelarReserva(): void
-      + atualizarReserva(dataEntrada: Date, dataSaida: Date): void
-      + consultarStatus(): Enum
+      + confirmarPagamento(): void
     }
 
-    ' Relacionamentos de Negócio - Operação
     Hospede "1" -- "*" Reserva : solicita >
     Atendente "1" -- "*" Reserva : processa >
     Gestor "1" -- "*" Quarto : gerencia >
     Quarto "*" -- "1" CategoriaQuarto : pertence a >
-    Reserva "*" -- "1" Quarto : aloca >
+    Reserva "*" -right- "1" Quarto : aloca >
+    StatusQuarto -right- Quarto : define >
+    StatusReserva -left- Reserva : define >
 }
 
 package "Financeiro e PDV (Restaurante/Spa)" {
     class ContaHospedagem {
       - dataAbertura: Date
       - totalAcumulado: Double
-      - status: Enum
+      - status: StatusReserva
 
-
+      + abrirConta(): void
+      + fecharConta(): void
+      + calcularTotal(): Double
     }
 
     class Pedido {
       - dataHora: DateTime
       - tipo: String
+      
+      + adicionarItem(produto: Produto, qtd: int): void
+      + calcularTotalPedido(): Double
     }
 
     class ItemPedido {
       - quantidade: Integer
       - precoPraticado: Double
+      
+      + calcularSubtotal(): Double
     }
 
     class Produto {
@@ -106,11 +128,12 @@ package "Financeiro e PDV (Restaurante/Spa)" {
       - precoAtual: Double
     }
 
-    ' Relacionamentos Financeiros
     Reserva "1" -- "1" ContaHospedagem : possui >
     Pedido "*" -- "0..1" ContaHospedagem : debita em >
     Atendente "1" -- "*" Pedido : registra >
-    Pedido "1" *-- "*" ItemPedido : contem >
+    
+    ' Composição: O ItemPedido não existe sem o Pedido
+    Pedido "1" *-- "*" ItemPedido : contém >
     ItemPedido "*" -- "1" Produto : refere-se a >
 }
 
