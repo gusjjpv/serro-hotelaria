@@ -96,7 +96,7 @@ package "Hospedagem e Infraestrutura" {
     StatusReserva -left- Reserva : define >
 }
 
-package "Financeiro e PDV (Restaurante/Spa)" {
+package "Financeiro e Restaurante" {
     class ContaHospedagem {
       - dataAbertura: Date
       - totalAcumulado: Double
