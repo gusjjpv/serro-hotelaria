@@ -17,14 +17,18 @@ rectangle "Caso de uso - Hóspede"{
     usecase "Solicitar serviços de quarto" as solicitar_servicos
 }
 
+actor "Gateway de Pagamento" as secondary
+
 usuario -- visualizar_disponibilidade
 hospede -- realizar_reserva
 realizar_reserva ..> verificar_disponibilidade : <<include>>
 hospede -- cancelar_reserva
 hospede -- realizar_checkin
 hospede -- consultar_extrato
-hospede -- realizar_pagamento
+hospede -- realizar_pagamento 
 hospede -- solicitar_servicos
+
+
 
 realizar_reserva ..> autenticar_hospede : <<include>>
 cancelar_reserva ..> autenticar_hospede : <<include>>
@@ -33,6 +37,11 @@ consultar_extrato ..> autenticar_hospede : <<include>>
 realizar_pagamento ..> autenticar_hospede : <<include>>
 solicitar_servicos ..> autenticar_hospede : <<include>>
 
+
 usuario <|-up- hospede
+
+
+
+realizar_pagamento ..> secondary : <<include>>
 
 @enduml
