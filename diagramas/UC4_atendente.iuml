@@ -13,8 +13,7 @@ rectangle "Caso de uso - Atendente" {
     
     package "Recepção e Governança" {
         usecase "Gerenciar Check-in/out Presencial" as uc07
-        usecase "Manter Cadastro de Hóspedes" as uc08
-        usecase "Atualizar Status do Quarto (Limpeza/Ocupação)" as uc10
+        usecase "Atualizar Status do Quarto (Ocupação)" as uc10
     }
 
     package "Restaurante e Serviços" {
@@ -25,13 +24,11 @@ rectangle "Caso de uso - Atendente" {
     usuario -right- uc11
 
     atendente -- uc07
-    atendente -- uc08
     atendente -- uc10
     atendente -- uc09
     atendente -- uc12
 
     uc07 ..> auth : <<include>>
-    uc08 ..> auth : <<include>>
     uc09 ..> auth : <<include>>
     uc10 ..> auth : <<include>>
     uc12 ..> auth : <<include>>

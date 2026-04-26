@@ -10,7 +10,7 @@ rectangle "Caso de uso - Supervisor" {
     usecase "Manter Quartos" as uc13
     usecase "Gerenciar Categorias de Acomodação" as uc14
     usecase "Gerenciar Comodidades" as uc15
-    usecase "Bloquear/Desbloquear para Manutenção" as uc16
+    usecase "Bloquear/Desbloquear para Manutenção/Limpeza" as uc16
 
 
     supervisor -- uc13
