@@ -1,12 +1,10 @@
 @startuml
-
 left to right direction
 
 actor "Usuário" as usuario
 actor "Hóspede" as hospede
 
 rectangle "Caso de uso - Hóspede"{
-    usecase "Autenticar Hóspede" as autenticar_hospede
     usecase "Visualizar Disponibilidade de Quartos" as visualizar_disponibilidade
     usecase "Verificar Disponibilidade" as verificar_disponibilidade
     usecase "Realizar reserva" as realizar_reserva
@@ -20,7 +18,7 @@ rectangle "Caso de uso - Hóspede"{
 actor "Gateway de Pagamento" as secondary
 
 usuario -- visualizar_disponibilidade
-hospede -- realizar_reserva
+usuario -- realizar_reserva
 realizar_reserva ..> verificar_disponibilidade : <<include>>
 hospede -- cancelar_reserva
 hospede -- realizar_checkin
@@ -28,20 +26,8 @@ hospede -- consultar_extrato
 hospede -- realizar_pagamento 
 hospede -- solicitar_servicos
 
-
-
-realizar_reserva ..> autenticar_hospede : <<include>>
-cancelar_reserva ..> autenticar_hospede : <<include>>
-realizar_checkin ..> autenticar_hospede : <<include>>
-consultar_extrato ..> autenticar_hospede : <<include>>
-realizar_pagamento ..> autenticar_hospede : <<include>>
-solicitar_servicos ..> autenticar_hospede : <<include>>
-
-
 usuario <|-up- hospede
 
-
-
-realizar_pagamento ..> secondary : <<include>>
+realizar_pagamento -- secondary
 
 @enduml
