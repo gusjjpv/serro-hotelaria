@@ -6,9 +6,7 @@ actor "Atendente" as atendente
 
 usuario <|-right- atendente
 
-rectangle "Caso de uso - Atendente" {
-    usecase "Autenticar Usuário" as auth
-    
+rectangle "Caso de uso - Atendente" {    
     usecase "Consultar Cardápio e Serviços" as uc11
     
     package "Recepção e Governança" {
@@ -28,9 +26,5 @@ rectangle "Caso de uso - Atendente" {
     atendente -- uc09
     atendente -- uc12
 
-    uc07 ..> auth : <<include>>
-    uc09 ..> auth : <<include>>
-    uc10 ..> auth : <<include>>
-    uc12 ..> auth : <<include>>
 }
 @enduml

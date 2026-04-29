@@ -5,13 +5,10 @@ actor "Gestor" as g
 actor "Supervisor" as supervisor
 
 rectangle "Caso de uso - Gestor" {
-    usecase "Autenticar Gestor" as auth
-    
     usecase "Consultar Dashboard" as uc17
     usecase "Gerar Relatório de Faturamento" as uc18
     usecase "Gerar Relatório de Ocupação" as uc19
     usecase "Gerenciar Tarifas de Temporada" as uc20
-
 
     g -- uc17
     g -- uc18

@@ -137,13 +137,22 @@ package "Financeiro e Restaurante" {
       - precoAtual: Double
     }
 
-    ContaHospedagem "1" -- "*" Pedido : recebe >
+    enum StatusConta {
+      ABERTA
+      PAGA
+      FECHADA
+      CANCELADA
+    }
+
+    ContaHospedagem "1" -right- "*" Pedido : recebe >
     Pedido "1" *-- "*" ItemPedido : contém >
     ItemPedido "*" -- "1" Produto : refere-se a >
+
+    StatusConta .up. ContaHospedagem
 }
 
 ' Relacionamentos entre pacotes (Forçados para roteamento limpo)
-Gestor "1" -down- "1" Hotel : administra >
+Gestor "*" -down- "1" Hotel : administra >
 Atendente "*" -down- "1" Hotel : trabalha no >
 Hospede "1" -- "*" Reserva : solicita >
 Atendente "1" -- "*" Reserva : processa >

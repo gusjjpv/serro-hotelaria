@@ -1,12 +1,10 @@
 @startuml
 left to right direction
 
+actor "Usuário" as usuario
 actor "Supervisor" as supervisor
 
-
 rectangle "Caso de uso - Supervisor" {
-    usecase "Autenticar Usuário" as auth
-
     usecase "Manter Quartos" as uc13
     usecase "Gerenciar Categorias de Acomodação" as uc14
     usecase "Gerenciar Comodidades" as uc15
@@ -18,11 +16,6 @@ rectangle "Caso de uso - Supervisor" {
     supervisor -- uc15
     supervisor -- uc16
 
-
-    uc13 ..> auth : <<include>>
-    uc14 ..> auth : <<include>>
-    uc15 ..> auth : <<include>>
-    uc16 ..> auth : <<include>>
-
+    usuario <|-right- supervisor
 }
 @enduml
