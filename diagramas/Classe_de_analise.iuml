@@ -112,7 +112,7 @@ package "Financeiro e Restaurante" {
     class ContaHospedagem {
       - dataAbertura: Date
       - totalAcumulado: Double
-      - status: StatusReserva
+      - status: StatusConta
       + abrirConta(): void
       + fecharConta(): void
       + calcularTotal(): Double
