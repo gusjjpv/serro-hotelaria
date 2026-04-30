@@ -1,162 +1,259 @@
 @startuml
-show members
+hide empty members
 
-' Configurações para um design mais limpo, estruturado e com linhas retas
 skinparam linetype ortho
-skinparam nodesep 70
-skinparam ranksep 80
+skinparam nodesep 65
+skinparam ranksep 110
 skinparam shadowing false
-skinparam classBackgroundColor White
-skinparam classBorderColor Black
-skinparam packageStyle rectangle
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
 
-package "Controle de Acesso" {
+skinparam class {
+    BackgroundColor White
+    BorderColor #4A4A4A
+    HeaderFontColor White
+    FontColor #2C2C2C
+    ArrowColor #4A4A4A
+    BorderThickness 1.5
+}
+
+skinparam interface {
+    BackgroundColor #E3F2FD
+    BorderColor #1565C0
+    HeaderBackgroundColor #1565C0
+    HeaderFontColor White
+}
+
+skinparam package {
+    BorderColor #888888
+    BorderThickness 1.5
+    FontStyle bold
+    FontSize 13
+}
+
+skinparam enum {
+    BackgroundColor #FFF8E1
+    BorderColor #F9A825
+    HeaderBackgroundColor #F9A825
+    HeaderFontColor White
+}
+
+' ─────────────────────────────────────────
+package "Controle de Acesso" #EEF2FF {
+
     class Usuario {
-      - nome: String
-      - email: String
-      - telefone: String
-      - login: String
-      - senha: String
-      - dataNascimento: Date
-      - genero: String
-      - endereco: String
-      - cpf: String
-      + cadastrarUsuario(): void
-      + login(): boolean
-      + logout(): void
-      + atualizarPerfil(): void
+        - nome : String
+        - email : String
+        - telefone : String
+        - login : String
+        - senha : String
+        - dataNascimento : Date
+        - genero : String
+        - endereco : String
+        - cpf : String
+        ..
+        + cadastrarUsuario() : void
+        + login() : boolean
+        + logout() : void
+        + visualizarDisponibilidade() : void
     }
 
     class Hospede {
-      - pontosFidelidade: int
-      + consultarHistoricoEstadias(): List<Reserva>
+        - pontosFidelidade : int
+        ..
+        + realizarCheckInOnline(reserva : Reserva) : void
+        + cancelarReserva(reserva : Reserva) : void
+        + consultarExtrato() : void
+        + realizarPagamento(conta : Conta) : void
+        + solicitarServicosQuarto() : void
+        + consultarHistoricoEstadias() : List<Reserva>
     }
 
     class Atendente {
-      - numeroDeCadastro: String
-      + realizarCheckIn(reserva: Reserva): void
-      + realizarCheckOut(reserva: Reserva): void
+        - numeroDeCadastro : String
+        ..
+        + realizarCheckInPresencial(reserva : Reserva) : void
+        + realizarCheckOut(reserva : Reserva) : void
+        + atualizarStatusQuarto(quarto : Quarto) : void
+        + lancarConsumoNaConta(conta : Conta, produto : Produto) : void
+        + gerenciarContasClientesExternos() : void
+        + consultarCardapio() : void
+        + abrirConta(nomeCliente : String) : Conta
+    }
+
+    class Supervisor {
+        ..
+        + bloquearQuartoManutencao(quarto : Quarto) : void
+        + gerenciarQuartos() : void
+        + gerenciarCategoriasAcomodacao() : void
     }
 
     class Gestor {
-      - nivelPermissao: String
-      + emitirRelatorioFaturamento(): void
-      + alterarTarifa(categoria: CategoriaQuarto, novoPreco: Double): void
+        - nivelPermissao : String
+        ..
+        + consultarDashboard() : void
+        + emitirRelatorioFaturamento() : void
+        + gerarRelatorioOcupacao() : void
+        + alterarTarifa(categoria : CategoriaQuarto, novoPreco : Double) : void
     }
 
-    Usuario <|-- Hospede
-    Usuario <|-- Atendente
-    Usuario <|-- Gestor
+    Usuario    <|-- Hospede
+    Usuario    <|-- Atendente
+    Usuario    <|-- Supervisor
+    Supervisor <|-- Gestor
 }
 
-package "Hospedagem e Infraestrutura" {
+' ─────────────────────────────────────────
+package "Hospedagem e Infraestrutura" #E8F5E9 {
+
     class Hotel {
-      - nome: String
-      - cnpj: String
-      - endereco: String
-      - telefoneContato: String
-      + atualizarDados(): void
+        - nome : String
+        - cnpj : String
+        - endereco : String
+        - telefoneContato : String
+        ..
+        + atualizarDados() : void
     }
 
     class CategoriaQuarto {
-      - nome: String
-      - capacidade: Integer
-      - precoDiaria: Double
-      + criarCategoria(): void
-      + atualizarCategoria(nome: String, preco: Double): void
-      + removerCategoria(nome: String): void
+        - nome : String
+        - capacidade : Integer
+        - precoDiaria : Double
+        ..
+        + criarCategoria() : void
+        + atualizarCategoria(nome : String, preco : Double) : void
+        + removerCategoria(nome : String) : void
     }
 
     class Quarto {
-      - numero: String
-      - status: StatusQuarto
-      + cadastrarQuarto(categoria: CategoriaQuarto): void
-      + atualizarStatus(novoStatus: StatusQuarto): void
-      + consultarDisponibilidade(): boolean
-      + removerQuarto(numero: String): void
+        - numero : String
+        - status : StatusQuarto
+        ..
+        + cadastrarQuarto(categoria : CategoriaQuarto) : void
+        + atualizarStatus(novoStatus : StatusQuarto) : void
+        + consultarDisponibilidade() : boolean
     }
 
     class Reserva {
-      - dataEntrada: Date
-      - dataSaida: Date
-      - status: StatusReserva
-      + criarReserva(hospede: Hospede, quarto: Quarto): void
-      + cancelarReserva(): void
-      + confirmarPagamento(): void
+        - dataEntrada : Date
+        - dataSaida : Date
+        - status : StatusReserva
+        ..
+        + criarReserva(hospede : Hospede, quarto : Quarto) : void
+        + cancelarReserva() : void
+        + confirmarPagamento() : void
+        + abrirContaAutomaticamente() : Conta
     }
 
     enum StatusQuarto {
-      DISPONIVEL
-      OCUPADO
-      LIMPEZA
-      MANUTENCAO
+        DISPONIVEL
+        OCUPADO
+        LIMPEZA
+        MANUTENCAO
     }
 
     enum StatusReserva {
-      PENDENTE
-      CONFIRMADA
-      FINALIZADA
-      CANCELADA
+        PENDENTE
+        CONFIRMADA
+        CHECK_IN
+        FINALIZADA
+        CANCELADA
     }
 
-    Hotel "1" *-- "*" Quarto : possui >
-    Hotel "1" *-- "*" CategoriaQuarto : oferece >
-    Quarto "*" -- "1" CategoriaQuarto : pertence a >
-    Reserva "*" -- "1" Quarto : aloca >
-    
-    StatusQuarto .. Quarto
-    StatusReserva .. Reserva
+    Hotel   "1" *-- "*" Quarto          : possui >
+    Hotel   "1" *-- "*" CategoriaQuarto : oferece >
+    Quarto  "*" --  "1" CategoriaQuarto : pertence a >
+    Reserva "*" --  "1" Quarto          : aloca >
+
+    StatusQuarto  ..> Quarto
+    StatusReserva ..> Reserva
 }
 
-package "Financeiro e Restaurante" {
-    class ContaHospedagem {
-      - dataAbertura: Date
-      - totalAcumulado: Double
-      - status: StatusConta
-      + abrirConta(): void
-      + fecharConta(): void
-      + calcularTotal(): Double
+' ─────────────────────────────────────────
+package "Financeiro e Restaurante" #FFF3E0 {
+
+    interface GatewayPagamento {
+        + processarPagamento(pagamento : Pagamento) : boolean
+        + gerarQRCodePix(valor : Double) : String
+        + consultarStatusTransacao(id : String) : String
+    }
+
+    class Pagamento {
+        - tipo : TipoPagamento
+        - valor : Double
+        - status : String
+        - dataHora : DateTime
+        - codigoTransacao : String
+        ..
+        + processar() : boolean
+        + emitirComprovante() : void
+    }
+
+    enum TipoPagamento {
+        PIX
+        CARTAO_CREDITO
+        CARTAO_DEBITO
+        DINHEIRO
+    }
+
+    class Conta {
+        - dataAbertura : Date
+        - totalAcumulado : Double
+        - status : StatusConta
+        - nomeTitular : String
+        - cpfTitular : String
+        ..
+        + fecharConta() : void
+        + calcularTotal() : Double
     }
 
     class Pedido {
-      - dataHora: DateTime
-      - tipo: String
-      + adicionarItem(produto: Produto, qtd: int): void
-      + calcularTotalPedido(): Double
+        - dataHora : DateTime
+        - tipo : String
+        ..
+        + adicionarItem(produto : Produto, qtd : int) : void
+        + calcularTotalPedido() : Double
     }
 
     class ItemPedido {
-      - quantidade: Integer
-      - precoPraticado: Double
-      + calcularSubtotal(): Double
+        - quantidade : Integer
+        - precoPraticado : Double
+        ..
+        + calcularSubtotal() : Double
     }
 
     class Produto {
-      - nome: String
-      - categoria: String
-      - precoAtual: Double
+        - nome : String
+        - categoria : String
+        - precoAtual : Double
     }
 
     enum StatusConta {
-      ABERTA
-      PAGA
-      FECHADA
-      CANCELADA
+        ABERTA
+        PAGA
+        FECHADA
+        CANCELADA
     }
 
-    ContaHospedagem "1" -right- "*" Pedido : recebe >
-    Pedido "1" *-- "*" ItemPedido : contém >
-    ItemPedido "*" -- "1" Produto : refere-se a >
+    Pagamento  "*"  ..>  "1" GatewayPagamento : usa >
+    Conta      "1"  --   "*" Pagamento         : registra >
+    Conta      "1"  --   "*" Pedido            : recebe >
+    Pedido     "1"  *--  "*" ItemPedido        : contém >
+    ItemPedido "*"  --   "1" Produto           : refere-se a >
 
-    StatusConta .up. ContaHospedagem
+    TipoPagamento ..> Pagamento
+    StatusConta   ..> Conta
 }
 
-' Relacionamentos entre pacotes (Forçados para roteamento limpo)
-Gestor "*" -down- "1" Hotel : administra >
-Atendente "*" -down- "1" Hotel : trabalha no >
-Hospede "1" -- "*" Reserva : solicita >
-Atendente "1" -- "*" Reserva : processa >
-Reserva "1" -down- "1" ContaHospedagem : possui >
-Atendente "1" -down- "*" Pedido : registra >
+' ─────────────────────────────────────────
+' Relacionamentos entre pacotes
+Hotel      "1"   *--  "*"    Produto  : disponibiliza >
+Supervisor "*"   --   "1"    Hotel    : administra >
+Atendente  "*"   --   "1"    Hotel    : trabalha no >
+Hospede    "1"   --   "*"    Reserva  : solicita >
+Atendente  "1"   --   "*"    Reserva  : processa >
+Reserva    "0..1" --  "1"    Conta    : gera >
+Atendente  "1"   --   "*"    Pedido   : registra >
+Hospede    "1"   --   "*"    Pagamento : realiza >
 
 @enduml
