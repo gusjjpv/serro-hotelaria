@@ -251,7 +251,7 @@ Hotel      "1"   *--  "*"    Produto  : disponibiliza >
 Supervisor "*"   --   "1"    Hotel    : administra >
 Atendente  "*"   --   "1"    Hotel    : trabalha no >
 Hospede    "1"   --   "*"    Reserva  : solicita >
-Atendente  "1"   --   "*"    Reserva  : processa >
+Atendente  "1"   -up-   "*"    Reserva  : processa >
 Reserva    "0..1" --  "1"    Conta    : gera >
 Atendente  "1"   --   "*"    Pedido   : registra >
 Hospede    "1"   --   "*"    Pagamento : realiza >

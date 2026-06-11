@@ -1,0 +1,117 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam maxmessagesize 150
+
+skinparam sequence {
+    LifeLineBorderColor #4A4A4A
+    LifeLineBackgroundColor #F9F9F9
+    GroupBorderColor #000000
+    GroupHeaderFontColor #000000
+    GroupHeaderBackgroundColor #1565C0
+    ActorBorderColor #4A4A4A
+    ParticipantBorderColor #4A4A4A
+    ParticipantBackgroundColor White
+}
+
+actor "Hóspede" as hospede
+boundary "view : TelaCheckIn" as tela
+control "ctrl : CheckInController" as ctrl
+entity "reserva : Reserva" as reserva
+entity "quarto : Quarto" as quarto
+database "db : BancoDeDados" as db
+
+hospede -> tela : 1. acessarOpcaoCheckIn()
+activate tela
+
+tela -> ctrl : 2. buscarReservaValida(hospede.id, dataAtual)
+activate ctrl
+
+ctrl -> db : consultarReserva(hospede.id, dataAtual)
+activate db
+db -->> ctrl : dadosReservaRetornados
+deactivate db
+
+alt E01: Fora do Horário Padrão
+    ctrl -> ctrl : validarHorarioLiberacao()
+    ctrl -->> tela : erro("Horário ainda não liberado")
+    tela -->> hospede : exibirMensagemErro()
+
+else P01: Horário Liberado
+    ctrl -> reserva : getDetalhes()
+    activate reserva
+    reserva -->> ctrl : detalhesRetornados
+    deactivate reserva
+    
+    ctrl -->> tela : exibirDetalhesReserva()
+    
+    hospede -> tela : 3. selecionarReserva(reserva.id)
+    tela -> ctrl : buscarDadosCadastro(hospede.id)
+
+    ctrl -> db : consultarDadosHospede(hospede.id)
+    activate db
+    db -->> ctrl : dadosCadastrais
+    deactivate db
+
+    ctrl -->> tela : dadosCadastrais
+    tela -->> hospede : 4. exibirFormularioPreenchido()
+
+    opt A01: Atualizar Dados Cadastrais
+        hospede -> tela : clicarEditarDados()
+        tela -->> hospede : habilitarCamposEdicao()
+        hospede -> tela : inserirNovosDados(dados)
+        tela -> ctrl : validarEAtualizarCadastro(dados)
+
+        ctrl -> db : atualizarDadosHospede(dados)
+        activate db
+        db -->> ctrl : confirmacaoAtualizacao
+        deactivate db
+
+        ctrl -->> tela : cadastroAtualizado
+        tela -->> hospede : atualizarTelaConfirmacao()
+    end
+
+    hospede -> tela : 5. confirmarCheckIn()
+    tela -> ctrl : processarCheckIn(reserva.id)
+
+    ctrl -> reserva : atualizarStatus(CHECK_IN)
+    activate reserva
+    reserva -->> ctrl : statusAtualizado
+    deactivate reserva
+
+    ctrl -> db : salvarStatusReserva(reserva.id, CHECK_IN)
+    activate db
+    db -->> ctrl : statusReservaAtualizado
+    deactivate db
+
+    ctrl -> quarto : atualizarStatus(OCUPADO)
+    activate quarto
+    quarto -->> ctrl : statusAtualizado
+    deactivate quarto
+
+    ctrl -> db : salvarStatusQuarto(quarto.numero, OCUPADO)
+    activate db
+    db -->> ctrl : statusQuartoAtualizado
+    deactivate db
+
+    ctrl -> reserva : abrirContaAutomaticamente()
+    activate reserva
+    
+    create entity "conta : Conta" as conta
+    reserva -> conta : <<create>> (new Conta)
+    reserva -->> ctrl : contaInstanciada
+    deactivate reserva
+
+    ctrl -> db : inserirNovaConta(conta.dados)
+    activate db
+    db -->> ctrl : idContaGerado
+    deactivate db
+
+    ctrl -->> tela : confirmacaoSucesso
+    deactivate ctrl
+
+    tela -->> hospede : 6. exibirMensagemEInstrucoes()
+    deactivate tela
+end
+
+@enduml
