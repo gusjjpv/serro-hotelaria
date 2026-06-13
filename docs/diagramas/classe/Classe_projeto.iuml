@@ -1,0 +1,332 @@
+@startuml
+hide empty members
+
+skinparam nodesep 65
+skinparam ranksep 110
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+
+skinparam class {
+    BackgroundColor White
+    BorderColor #4A4A4A
+    HeaderFontColor White
+    FontColor #2C2C2C
+    ArrowColor #4A4A4A
+    BorderThickness 1.5
+}
+
+skinparam package {
+    BorderColor #888888
+    BorderThickness 1.5
+    FontStyle bold
+    FontSize 13
+}
+
+skinparam enum {
+    BackgroundColor #FFF8E1
+    BorderColor #F9A825
+    HeaderBackgroundColor #F9A825
+    HeaderFontColor White
+}
+
+' ─────────────────────────────────────────
+package "Controle de Acesso" #EEF2FF {
+
+    abstract class Usuario {
+        - id : Long
+        - nome : String
+        - email : String
+        - telefone : String
+        - login : String
+        - senha : String
+        - dataNascimento : Date
+        - genero : String
+        - endereco : String
+        - cpf : String
+        - role : Role
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + cadastrar() : void
+        + login() : Token
+        + logout() : void
+        + atualizarDados() : void
+        + desativar() : void
+    }
+
+    class Hospede {
+        - pontosFidelidade : Integer
+        ..
+        + realizarCheckInOnline(reserva : Reserva) : void
+        + cancelarReserva(reserva : Reserva) : void
+        + consultarExtrato() : Conta
+        + consultarHistoricoEstadias() : List<Reserva>
+    }
+
+    class Atendente {
+        - numeroDeCadastro : String
+        ..
+        + realizarCheckInPresencial(reserva : Reserva) : void
+        + realizarCheckOut(reserva : Reserva) : void
+        + atualizarStatusQuarto(quarto : Quarto, status : StatusQuarto) : void
+        + lancarDespesaNaConta(conta : Conta, despesa : Despesa) : void
+        + visualizarExtratoHospede(hospede : Hospede) : Conta
+    }
+
+    class Supervisor {
+        ..
+        + bloquearQuarto(quarto : Quarto, manutencao : Manutencao) : void
+        + desbloquearQuarto(quarto : Quarto) : void
+        + gerenciarQuartos() : void
+        + gerenciarCategoriasAcomodacao() : void
+    }
+
+    class Gestor {
+        - nivelPermissao : String
+        ..
+        + consultarDashboard() : Dashboard
+        + emitirRelatorioFaturamento(dataInicio : Date, dataFim : Date) : Relatorio
+        + gerarRelatorioOcupacao(dataInicio : Date, dataFim : Date) : Relatorio
+        + gerenciarTarifas() : void
+        + gerenciarUsuarios() : void
+    }
+
+    enum Role {
+        HOSPEDE
+        ATENDENTE
+        SUPERVISOR
+        GESTOR
+    }
+
+    Usuario    <|-- Hospede
+    Usuario    <|-- Atendente
+    Usuario    <|-- Supervisor
+    Supervisor <|-- Gestor
+    Role       ..> Usuario : define >
+}
+
+' ─────────────────────────────────────────
+package "Hospedagem e Infraestrutura" #E8F5E9 {
+
+    class Hotel {
+        - id : Long
+        - nome : String
+        - cnpj : String
+        - endereco : String
+        - telefoneContato : String
+        - emailContato : String
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + atualizarDados() : void
+    }
+
+    class CategoriaQuarto {
+        - id : Long
+        - nome : String
+        - descricao : String
+        - capacidade : Integer
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + criar() : void
+        + atualizar() : void
+        + remover() : void
+        + obterTarifaVigente(data : Date) : Tarifa
+    }
+
+    class Quarto {
+        - id : Long
+        - numero : String
+        - andar : Integer
+        - status : StatusQuarto
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + cadastrar() : void
+        + atualizarStatus(novoStatus : StatusQuarto) : void
+        + consultarDisponibilidade(dataInicio : Date, dataFim : Date) : boolean
+        + estaBloqueado(data : Date) : boolean
+    }
+
+    class Reserva {
+        - id : Long
+        - codigo : String
+        - dataEntrada : Date
+        - dataSaida : Date
+        - status : StatusReserva
+        - numHospedes : Integer
+        - valorTotal : Double
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + criar() : void
+        + cancelar() : void
+        + confirmar() : void
+        + realizarCheckIn() : void
+        + realizarCheckOut() : void
+        + calcularValorTotal() : Double
+        + verificarDisponibilidade() : boolean
+    }
+
+    enum StatusQuarto {
+        DISPONIVEL
+        OCUPADO
+        LIMPEZA
+        MANUTENCAO
+    }
+
+    enum StatusReserva {
+        PENDENTE
+        CONFIRMADA
+        CHECK_IN
+        FINALIZADA
+        CANCELADA
+    }
+
+    Hotel   "1" *-- "1..*" Quarto          : possui >
+    Hotel   "1" *-- "1..*" CategoriaQuarto : oferece >
+    Quarto  "*" --> "1" CategoriaQuarto    : pertence a >
+    Reserva "*" --> "1" Quarto             : aloca >
+
+    StatusQuarto  .up.> Quarto
+    StatusReserva ..> Reserva
+}
+
+' ─────────────────────────────────────────
+package "Financeiro" #FFF3E0 {
+
+    class Conta {
+        - id : Long
+        - dataAbertura : DateTime
+        - dataFechamento : DateTime
+        - totalAcumulado : Double
+        - status : StatusConta
+        - nomeTitular : String
+        - cpfTitular : String
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + abrir() : void
+        + fechar() : void
+        + adicionarDespesa(despesa : Despesa) : void
+        + calcularTotal() : Double
+        + obterExtrato() : List<Despesa>
+    }
+
+    class Despesa {
+        - id : Long
+        - descricao : String
+        - valor : Double
+        - categoria : CategoriaDespesa
+        - dataHora : DateTime
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + criar() : void
+        + calcularSubtotal() : Double
+    }
+
+    class Produto {
+        - id : Long
+        - nome : String
+        - descricao : String
+        - categoria : String
+        - precoAtual : Double
+        - ativo : Boolean
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + cadastrar() : void
+        + atualizar() : void
+        + desativar() : void
+    }
+
+    enum StatusConta {
+        ABERTA
+        PAGA
+        FECHADA
+        CANCELADA
+    }
+
+    enum CategoriaDespesa {
+        FRIGOBAR
+        SERVICO_QUARTO
+        SPA
+        OUTROS
+    }
+
+    Conta      "1"  *--  "0..*" Despesa  : contém >
+    Despesa    "*"  -right->  "0..1" Produto   : referencia >
+
+    StatusConta      .left.> Conta
+    CategoriaDespesa .right.> Despesa
+}
+
+' ─────────────────────────────────────────
+package "Tarifas e Manutenção" #F3E5F5 {
+
+    class Tarifa {
+        - id : Long
+        - valorDiaria : Double
+        - dataInicio : Date
+        - dataFim : Date
+        - tipoTemporada : TipoTemporada
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + criar() : void
+        + atualizar() : void
+        + remover() : void
+        + estaVigente(data : Date) : boolean
+    }
+
+    class Manutencao {
+        - id : Long
+        - dataInicio : Date
+        - dataFim : Date
+        - motivo : MotivoManutencao
+        - descricao : String
+        - status : StatusManutencao
+        - dataCriacao : DateTime
+        - dataAtualizacao : DateTime
+        ..
+        + criar() : void
+        + finalizar() : void
+        + cancelar() : void
+    }
+
+    enum TipoTemporada {
+        ALTA
+        BAIXA
+    }
+
+    enum MotivoManutencao {
+        PREVENTIVA
+        CORRETIVA
+        LIMPEZA
+    }
+
+    enum StatusManutencao {
+        AGENDADA
+        EM_ANDAMENTO
+        CONCLUIDA
+        CANCELADA
+    }
+
+    TipoTemporada    .left.> Tarifa
+    MotivoManutencao .left.> Manutencao
+    StatusManutencao .left.> Manutencao
+}
+
+
+Reserva    "*"   -->  "1"    Hospede      : solicitada por >
+Reserva    "1"   -->  "0..1" Conta        : gera >
+Supervisor "*"   -->  "1"    Hotel        : administra >
+Atendente  "*"   -->  "1"    Hotel        : trabalha no >
+CategoriaQuarto "1" *-- "1..*" Tarifa     : possui >
+Quarto     "1"   *--  "0..*" Manutencao   : possui >
+
+@enduml

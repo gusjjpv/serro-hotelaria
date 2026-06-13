@@ -1,0 +1,69 @@
+@startuml
+
+|Hóspede|
+|Sistema SERRÔ|
+|Gateway de Pagamento|
+
+|Hóspede|
+start
+:Acessar opção "Realizar Reserva";
+
+|Sistema SERRÔ|
+:Solicitar datas de entrada, saída\ne tipo de acomodação;
+
+|Hóspede|
+:Informar os dados solicitados;
+
+|Sistema SERRÔ|
+:Verificar disponibilidade de quartos;
+
+if (Quartos disponíveis no período?) then (Não)
+    :Exibir mensagem de erro:\n"Não há quartos disponíveis";
+    stop
+else (Sim)
+    :Exibir opções de quartos livres;
+endif
+
+|Hóspede|
+if (Deseja continuar com a reserva?) then (Não)
+    |Sistema SERRÔ|
+    :Limpar dados temporários da sessão;
+    :Redirecionar usuário para menu inicial;
+    stop
+else (Sim)
+    |Hóspede|
+    :Selecionar o quarto desejado;
+endif
+
+|Sistema SERRÔ|
+:Apresentar resumo da reserva\ne valor total;
+
+repeat
+    |Hóspede|
+    :Confirmar dados e escolher\nforma de pagamento (PIX ou Cartão);
+    
+    |Sistema SERRÔ|
+    :Enviar dados da transação financeira;
+    
+    |Gateway de Pagamento|
+    :Validar dados do cartão/saldo;
+    
+|Sistema SERRÔ|
+repeat while (Pagamento Aprovado?) is (Não - Exibir motivo da falha)
+-> Sim;
+
+|Sistema SERRÔ|
+:Registrar reserva no banco\ncom status "Confirmada";
+
+fork
+    :Gerar Voucher digital;
+fork again
+    :Enviar confirmação por e-mail;
+fork again
+    :Bloquear o quarto\npara novas reservas;
+fork again
+    :Abrir "Conta de Hospedagem"\nautomaticamente;
+end merge
+
+stop
+@enduml
