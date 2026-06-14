@@ -43,7 +43,7 @@ package "Controle de Acesso" #EEF2FF {
         - senha : String
         - dataNascimento : Date
         - genero : String
-        - endereco : String
+        - endereco : Endereco
         - cpf : String
         - role : Role
         - dataCriacao : DateTime
@@ -54,6 +54,16 @@ package "Controle de Acesso" #EEF2FF {
         + logout() : void
         + atualizarDados() : void
         + alterarAssinatura() : void
+    }
+
+    class Endereco {
+        - rua : String
+        - numero : String
+        - complemento : String
+        - bairro : String
+        - cidade : String
+        - estado : String
+        - cep : String
     }
 
     class Hospede {
@@ -104,6 +114,7 @@ package "Controle de Acesso" #EEF2FF {
     Usuario    <|-- Supervisor
     Supervisor <|-- Gestor
     Role       ..> Usuario : define >
+    Endereco   ..> Usuario : possui >
 }
 
 ' ─────────────────────────────────────────
@@ -113,7 +124,7 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
         - id : String
         - nome : String
         - cnpj : String
-        - endereco : String
+        - endereco : Endereco
         - telefoneContato : String
         - emailContato : String
         - dataCriacao : DateTime
@@ -187,6 +198,7 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
 
     Hotel   "1" *-- "1..*" Quarto          : possui >
     Hotel   "1" *-- "1..*" CategoriaQuarto : oferece >
+    Hotel "1" --> "1" Endereco : localizado em >
     Quarto  "*" --> "1" CategoriaQuarto    : pertence a >
     Reserva "*" --> "1" Quarto             : aloca >
 
