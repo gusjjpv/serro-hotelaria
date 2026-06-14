@@ -35,7 +35,7 @@ skinparam enum {
 package "Controle de Acesso" #EEF2FF {
 
     abstract class Usuario {
-        - id : Long
+        - id : String
         - nome : String
         - email : String
         - telefone : String
@@ -53,7 +53,7 @@ package "Controle de Acesso" #EEF2FF {
         + login() : Token
         + logout() : void
         + atualizarDados() : void
-        + desativar() : void
+        + alterarAssinatura() : void
     }
 
     class Hospede {
@@ -84,13 +84,12 @@ package "Controle de Acesso" #EEF2FF {
     }
 
     class Gestor {
-        - nivelPermissao : String
         ..
         + consultarDashboard() : Dashboard
         + emitirRelatorioFaturamento(dataInicio : Date, dataFim : Date) : Relatorio
         + gerarRelatorioOcupacao(dataInicio : Date, dataFim : Date) : Relatorio
         + gerenciarTarifas() : void
-        + gerenciarUsuarios() : void
+        + gerenciarHospedes() : void
     }
 
     enum Role {
@@ -111,7 +110,7 @@ package "Controle de Acesso" #EEF2FF {
 package "Hospedagem e Infraestrutura" #E8F5E9 {
 
     class Hotel {
-        - id : Long
+        - id : String
         - nome : String
         - cnpj : String
         - endereco : String
@@ -124,7 +123,7 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
     }
 
     class CategoriaQuarto {
-        - id : Long
+        - id : String
         - nome : String
         - descricao : String
         - capacidade : Integer
@@ -138,7 +137,7 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
     }
 
     class Quarto {
-        - id : Long
+        - id : String
         - numero : String
         - andar : Integer
         - status : StatusQuarto
@@ -152,7 +151,7 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
     }
 
     class Reserva {
-        - id : Long
+        - id : String
         - codigo : String
         - dataEntrada : Date
         - dataSaida : Date
@@ -199,7 +198,7 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
 package "Financeiro" #FFF3E0 {
 
     class Conta {
-        - id : Long
+        - id : String
         - dataAbertura : DateTime
         - dataFechamento : DateTime
         - totalAcumulado : Double
@@ -217,7 +216,7 @@ package "Financeiro" #FFF3E0 {
     }
 
     class Despesa {
-        - id : Long
+        - id : String
         - descricao : String
         - valor : Double
         - categoria : CategoriaDespesa
@@ -230,7 +229,7 @@ package "Financeiro" #FFF3E0 {
     }
 
     class Produto {
-        - id : Long
+        - id : String
         - nome : String
         - descricao : String
         - categoria : String
@@ -269,7 +268,7 @@ package "Financeiro" #FFF3E0 {
 package "Tarifas e Manutenção" #F3E5F5 {
 
     class Tarifa {
-        - id : Long
+        - id : String
         - valorDiaria : Double
         - dataInicio : Date
         - dataFim : Date
@@ -284,7 +283,7 @@ package "Tarifas e Manutenção" #F3E5F5 {
     }
 
     class Manutencao {
-        - id : Long
+        - id : String
         - dataInicio : Date
         - dataFim : Date
         - motivo : MotivoManutencao
