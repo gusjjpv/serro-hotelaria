@@ -1,16 +1,13 @@
 @startuml
 
-|Hóspede|
-|Sistema SERRÔ|
-
-|Hóspede|
+|Usuário|
 start
 :Acessar opção "Realizar Reserva";
 
 |Sistema SERRÔ|
 :Solicitar datas de entrada, saída\ne quantidade de hóspedes;
 
-|Hóspede|
+|Usuário|
 :Informar os dados solicitados;
 
 |Sistema SERRÔ|
@@ -26,7 +23,7 @@ else (Não)
     stop
 endif
 
-|Hóspede|
+|Usuário|
 if (Confirmar intenção de reserva?) then (Sim)
     :Confirmar dados cadastrais;
     :Clicar em "Finalizar Reserva";
