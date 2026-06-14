@@ -2,7 +2,6 @@
 
 |Hóspede|
 |Sistema SERRÔ|
-|Gateway de Pagamento|
 
 |Hóspede|
 start
@@ -15,13 +14,13 @@ start
 :Informar os dados solicitados;
 
 |Sistema SERRÔ|
-:Verificar disponibilidade de quartos;
+:Verificar disponibilidade de quartos\n(considerando status e bloqueios);
 
 if (Quartos disponíveis no período?) then (Não)
     :Exibir mensagem de erro:\n"Não há quartos disponíveis";
     stop
 else (Sim)
-    :Exibir opções de quartos livres;
+    :Exibir opções de quartos livres\ncom valor da diária (tarifa vigente);
 endif
 
 |Hóspede|
@@ -36,33 +35,39 @@ else (Sim)
 endif
 
 |Sistema SERRÔ|
-:Apresentar resumo da reserva\ne valor total;
+:Apresentar resumo da reserva\n(quarto, datas, tarifa, valor total);
 
-repeat
+|Hóspede|
+:Confirmar dados e informar\nnúmero de hóspedes;
+
+|Sistema SERRÔ|
+:Validar número de hóspedes\ncapacidade do quarto;
+
+if (Número de hóspedes válido?) then (Não)
+    :Exibir mensagem de erro: "Capacidade do quarto excedida";
     |Hóspede|
-    :Confirmar dados e escolher\nforma de pagamento (PIX ou Cartão);
-    
+    :Revisar dados da reserva;
+    backward :Informar número correto de hóspedes;
     |Sistema SERRÔ|
-    :Enviar dados da transação financeira;
-    
-    |Gateway de Pagamento|
-    :Validar dados do cartão/saldo;
-    
-|Sistema SERRÔ|
-repeat while (Pagamento Aprovado?) is (Não - Exibir motivo da falha)
--> Sim;
+    :Revalidar capacidade;
+endif
 
 |Sistema SERRÔ|
-:Registrar reserva no banco\ncom status "Confirmada";
+:Calcular valor total\n(diárias x tarifa vigente);
+
+|Hóspede|
+:Confirmar e enviar reserva;
+
+|Sistema SERRÔ|
+:Registrar reserva no banco\ncom status "CONFIRMADA";
+:Gerar código único da reserva;
 
 fork
-    :Gerar Voucher digital;
+    :Enviar confirmação por e-mail\ncom dados da reserva;
 fork again
-    :Enviar confirmação por e-mail;
+    :Atualizar status do quarto\npara "OCUPADO";
 fork again
-    :Bloquear o quarto\npara novas reservas;
-fork again
-    :Abrir "Conta de Hospedagem"\nautomaticamente;
+    :Abrir Conta de Hospedagem\n(vinculada à reserva);
 end merge
 
 stop
