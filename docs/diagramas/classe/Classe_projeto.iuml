@@ -36,10 +36,11 @@ package "Controle de Acesso" #EEF2FF {
 
     abstract class Usuario {
         - id : String
-        - nome : String
+        - primeiroNome : String
+        - ultimoNome : String
         - email : String
         - telefone : String
-        - login : String
+        - username : String
         - senha : String
         - dataNascimento : Date
         - genero : String
