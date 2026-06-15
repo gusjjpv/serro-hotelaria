@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 class Endereco(models.Model):    
     rua = models.CharField(max_length=100)
@@ -12,17 +13,13 @@ class Endereco(models.Model):
     def __str__(self):
         return f"{self.rua}, {self.numero} - {self.bairro}, {self.cidade} - {self.estado}, CEP: {self.cep}"
 
-class Usuario(models.Model):
-    nome = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
-    login = models.CharField(max_length=20, unique=True)
-    senha = models.CharField(max_length=100)
+class Usuario(AbstractUser):
+    username = models.CharField(max_length=20, unique=True)
     telefone = models.CharField(max_length=14, unique=True)
     dataNascimento = models.DateField()
     genero = models.CharField(max_length=10)
     endereco = models.ForeignKey(Endereco, on_delete=models.CASCADE)
     cpf = models.CharField(max_length=11, unique=True)
-    dataCriacao = models.DateTimeField(auto_now_add=True)
     dataAtualizacao = models.DateTimeField(auto_now=True)
 
     class Role(models.TextChoices):
@@ -34,4 +31,5 @@ class Usuario(models.Model):
     role = models.CharField(max_length=2, choices=Role.choices)
 
     def __str__(self):
-        return f"{self.login} - {self.email}"
+        return self.username
+    

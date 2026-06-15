@@ -3,8 +3,8 @@ from .models import Usuario, Endereco
 
 @admin.register(Usuario)
 class UsuarioAdmin(admin.ModelAdmin):
-    list_display = ('login', 'email', 'role', 'dataCriacao')
-    search_fields = ('login', 'email', 'cpf')
+    list_display = ('username', 'email', 'role', 'cpf')
+    search_fields = ('username', 'email', 'cpf')
     list_filter = ('role',)
 
 @admin.register(Endereco)
