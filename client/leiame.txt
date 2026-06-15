@@ -1,0 +1,3 @@
+crie o projeto do front aq nessa pasta 
+
+npm create vite@latest . -- --template react-ts
