@@ -18,6 +18,20 @@ def criar_usuario(data):
     return usuario
 
 
+def criar_usuario_por_gestor(data):
+    endereco = Endereco.objects.create(**data.pop('endereco'))
+    senha = data.pop('senha', None)
+
+    usuario = Usuario.objects.create(
+        endereco=endereco,
+        **data,
+    )
+    if senha:
+        usuario.set_password(senha)
+    usuario.save()
+    return usuario
+
+
 def gerar_tokens(usuario):
     refresh = RefreshToken.for_user(usuario)
     return {

@@ -59,11 +59,18 @@ class RegisterSerializer(serializers.Serializer):
                 'username': instance.username,
                 'first_name': instance.first_name,
                 'last_name': instance.last_name,
+                'role': instance.role,
             }
         }
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['role'] = user.role
+        return token
+
     def validate(self, attrs):
         username = attrs.get('username')
         password = attrs.get('password')
@@ -91,5 +98,92 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 'username': user.username,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
+                'role': user.role,
             }
         }
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    endereco = EnderecoSerializer(read_only=True)
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'telefone', 'cpf', 'dataNascimento', 'genero',
+            'role', 'endereco', 'date_joined',
+        ]
+
+
+class UserAdminSerializer(serializers.ModelSerializer):
+    endereco = EnderecoSerializer()
+    senha = serializers.CharField(write_only=True, min_length=8, required=False)
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'telefone', 'cpf', 'dataNascimento', 'genero',
+            'role', 'endereco', 'senha', 'is_active',
+        ]
+
+    def validate_email(self, value):
+        qs = Usuario.objects.filter(email=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Este email já está cadastrado.")
+        return value
+
+    def validate_username(self, value):
+        qs = Usuario.objects.filter(username=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Este username já está em uso.")
+        return value
+
+    def validate_cpf(self, value):
+        qs = Usuario.objects.filter(cpf=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Este CPF já está cadastrado.")
+        return value
+
+    def validate_telefone(self, value):
+        qs = Usuario.objects.filter(telefone=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Este telefone já está cadastrado.")
+        return value
+
+    def create(self, validated_data):
+        from .service import criar_usuario_por_gestor
+        return criar_usuario_por_gestor(validated_data)
+
+    def update(self, instance, validated_data):
+        endereco_data = validated_data.pop('endereco', None)
+        if endereco_data:
+            for attr, value in endereco_data.items():
+                setattr(instance.endereco, attr, value)
+            instance.endereco.save()
+
+        senha = validated_data.pop('senha', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if senha:
+            instance.set_password(senha)
+        instance.save()
+        return instance
+
+
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Usuario
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'role', 'is_active', 'date_joined',
+        ]
