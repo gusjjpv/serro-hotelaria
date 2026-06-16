@@ -11,11 +11,11 @@ start
 :Informar os dados solicitados;
 
 |Sistema SERRÔ|
-:Consultar disponibilidade de Quarto\n(consultarDisponibilidade);
-:Verificar bloqueios de Manutenção\n(estaBloqueado);
+:Consultar disponibilidade de Quarto;
+:Verificar bloqueios de Manutenção;
 
 if (Quartos disponíveis e liberados?) then (Sim)
-    :Obter tarifa vigente\n(obterTarifaVigente);
+    :Obter tarifa vigente;
     :Calcular valor total da estadia;
     :Exibir opções de quartos e resumo de valores;
 else (Não)
@@ -34,18 +34,25 @@ else (Não)
     stop
 endif
 
+while (Dados completos e válidos?) is (Não)
+    :Exibir mensagem de erro\ncom campos pendentes;
+    |Usuário|
+    :Corrigir dados;
+endwhile
+
 |Sistema SERRÔ|
 :Registrar Reserva no banco\ncom status "CONFIRMADA";
 
 fork
     :Vincular Quarto à Reserva;
 fork again
-    :Instanciar nova Conta de Hospedagem\n(abrir);
+    :Abrir nova Conta de Hospedagem;
 fork again
     :Enviar voucher de confirmação\npor e-mail;
 end fork
 
-:Exibir tela de sucesso com\nCódigo da Reserva;
+:Gerar código único da Reserva;
+:Exibir tela de sucesso;
 
 stop
 @enduml
