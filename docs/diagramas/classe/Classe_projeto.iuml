@@ -36,14 +36,15 @@ package "Controle de Acesso" #EEF2FF {
 
     abstract class Usuario {
         - id : String
-        - nome : String
+        - primeiroNome : String
+        - ultimoNome : String
         - email : String
         - telefone : String
-        - login : String
+        - username : String
         - senha : String
         - dataNascimento : Date
         - genero : String
-        - endereco : String
+        - endereco : Endereco
         - cpf : String
         - role : Role
         - dataCriacao : DateTime
@@ -54,6 +55,16 @@ package "Controle de Acesso" #EEF2FF {
         + logout() : void
         + atualizarDados() : void
         + alterarAssinatura() : void
+    }
+
+    class Endereco {
+        - rua : String
+        - numero : String
+        - complemento : String
+        - bairro : String
+        - cidade : String
+        - estado : String
+        - cep : String
     }
 
     class Hospede {
@@ -103,7 +114,8 @@ package "Controle de Acesso" #EEF2FF {
     Usuario    <|-- Atendente
     Usuario    <|-- Supervisor
     Supervisor <|-- Gestor
-    Role       ..> Usuario : define >
+    Role       <.. Usuario : define >
+    Usuario  -up->  Endereco : possui >
 }
 
 ' ─────────────────────────────────────────
@@ -113,7 +125,7 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
         - id : String
         - nome : String
         - cnpj : String
-        - endereco : String
+        - endereco : Endereco
         - telefoneContato : String
         - emailContato : String
         - dataCriacao : DateTime
@@ -185,13 +197,14 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
         CANCELADA
     }
 
-    Hotel   "1" *-- "1..*" Quarto          : possui >
-    Hotel   "1" *-- "1..*" CategoriaQuarto : oferece >
-    Quarto  "*" --> "1" CategoriaQuarto    : pertence a >
-    Reserva "*" --> "1" Quarto             : aloca >
+    Hotel "1" o-- "1..*" Quarto : possui >
 
-    StatusQuarto  .up.> Quarto
-    StatusReserva ..> Reserva
+    Hotel "1" --> "1" Endereco : localizado em >
+    Quarto "*" --> "1" CategoriaQuarto : pertence a >
+    Reserva "*" --> "1" Quarto : aloca >
+
+    StatusQuarto <.up. Quarto
+    StatusReserva <.. Reserva
 }
 
 ' ─────────────────────────────────────────
@@ -257,14 +270,14 @@ package "Financeiro" #FFF3E0 {
         OUTROS
     }
 
-    Conta      "1"  *--  "0..*" Despesa  : contém >
-    Despesa    "*"  -right->  "0..1" Produto   : referencia >
+    Conta "1" o-- "0..*" Despesa : contém >
 
-    StatusConta      .left.> Conta
-    CategoriaDespesa .right.> Despesa
+    Despesa "*" -left-> "0..1" Produto : referencia >
+
+    Conta .left.> StatusConta
+    Despesa .right.> CategoriaDespesa
 }
 
-' ─────────────────────────────────────────
 package "Tarifas e Manutenção" #F3E5F5 {
 
     class Tarifa {
@@ -298,34 +311,37 @@ package "Tarifas e Manutenção" #F3E5F5 {
     }
 
     enum TipoTemporada {
-        ALTA
-        BAIXA
+            ALTA
+            BAIXA
+        }
+
+        enum MotivoManutencao {
+            PREVENTIVA
+            CORRETIVA
+            LIMPEZA
+        }
+
+        enum StatusManutencao {
+            AGENDADA
+            EM_ANDAMENTO
+            CONCLUIDA
+            CANCELADA
+        }
+
+        TipoTemporada    <.left. Tarifa
+        MotivoManutencao <.left. Manutencao
+        StatusManutencao <.left. Manutencao
     }
 
-    enum MotivoManutencao {
-        PREVENTIVA
-        CORRETIVA
-        LIMPEZA
-    }
 
-    enum StatusManutencao {
-        AGENDADA
-        EM_ANDAMENTO
-        CONCLUIDA
-        CANCELADA
-    }
+    Reserva    "*"   -->  "1"    Hospede      : solicitada por >
+    Reserva    "1"   -->  "0..1" Conta        : gera >
+    Supervisor "*"   -->  "1"    Hotel        : administra >
+    Atendente  "*"   -->  "1"    Hotel        : trabalha no >
+    CategoriaQuarto "1" --> "1..*" Tarifa     : possui >
+    Manutencao "*" -up-> "1" Quarto : referente ao >
+    
 
-    TipoTemporada    .left.> Tarifa
-    MotivoManutencao .left.> Manutencao
-    StatusManutencao .left.> Manutencao
-}
-
-
-Reserva    "*"   -->  "1"    Hospede      : solicitada por >
-Reserva    "1"   -->  "0..1" Conta        : gera >
-Supervisor "*"   -->  "1"    Hotel        : administra >
-Atendente  "*"   -->  "1"    Hotel        : trabalha no >
-CategoriaQuarto "1" *-- "1..*" Tarifa     : possui >
-Quarto     "1"   *--  "0..*" Manutencao   : possui >
-
+    Hotel "1" o-- "0..*" Manutencao : gerencia >
+    
 @enduml

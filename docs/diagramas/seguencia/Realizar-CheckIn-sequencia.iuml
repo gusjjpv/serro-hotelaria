@@ -21,96 +21,94 @@ entity "reserva : Reserva" as reserva
 entity "quarto : Quarto" as quarto
 database "db : BancoDeDados" as db
 
-hospede -> tela : 1. acessarOpcaoCheckIn()
+hospede -> tela : P.01 acessarOpcaoCheckIn()
 activate tela
 
-tela -> ctrl : 2. buscarReservaValida(hospede.id, dataAtual)
+tela -> ctrl : P.02 buscarReservaValida(hospede.id, dataAtual)
 activate ctrl
 
-ctrl -> db : consultarReserva(hospede.id, dataAtual)
+ctrl -> db : P.03 consultarReserva(hospede.id, dataAtual)
 activate db
-db -->> ctrl : dadosReservaRetornados
+db -->> ctrl : P.04 dadosReservaRetornados
 deactivate db
 
 alt E01: Fora do Horário Padrão
-    ctrl -> ctrl : validarHorarioLiberacao()
-    ctrl -->> tela : erro("Horário ainda não liberado")
-    tela -->> hospede : exibirMensagemErro()
+    ctrl -> ctrl : E.01 validarHorarioLiberacao()
+    ctrl -->> tela : E.02 erro("Horário ainda não liberado")
+    tela -->> hospede : E.03 exibirMensagemErro()
 
 else P01: Horário Liberado
-    ctrl -> reserva : getDetalhes()
+    ctrl -> reserva : P.05 getDetalhes()
     activate reserva
-    reserva -->> ctrl : detalhesRetornados
+    reserva -->> ctrl : P.06 detalhesRetornados
     deactivate reserva
     
-    ctrl -->> tela : exibirDetalhesReserva()
+    ctrl -->> tela : P.07 exibirDetalhesReserva()
     
-    hospede -> tela : 3. selecionarReserva(reserva.id)
-    tela -> ctrl : buscarDadosCadastro(hospede.id)
+    hospede -> tela : P.08 selecionarReserva(reserva.id)
+    tela -> ctrl : P.09 buscarDadosCadastro(hospede.id)
 
-    ctrl -> db : consultarDadosHospede(hospede.id)
+    ctrl -> db : P.10 consultarDadosHospede(hospede.id)
     activate db
-    db -->> ctrl : dadosCadastrais
+    db -->> ctrl : P.11 dadosCadastrais
     deactivate db
 
-    ctrl -->> tela : dadosCadastrais
-    tela -->> hospede : 4. exibirFormularioPreenchido()
+    ctrl -->> tela : P.12 dadosCadastrais
+    tela -->> hospede : P.13 exibirFormularioPreenchido()
 
     opt A01: Atualizar Dados Cadastrais
-        hospede -> tela : clicarEditarDados()
-        tela -->> hospede : habilitarCamposEdicao()
-        hospede -> tela : inserirNovosDados(dados)
-        tela -> ctrl : validarEAtualizarCadastro(dados)
+        hospede -> tela : A.01 clicarEditarDados()
+        tela -->> hospede : A.02 habilitarCamposEdicao()
+        hospede -> tela : A.03 inserirNovosDados(dados)
+        tela -> ctrl : A.04 validarEAtualizarCadastro(dados)
 
-        ctrl -> db : atualizarDadosHospede(dados)
+        ctrl -> db : A.05 atualizarDadosHospede(dados)
         activate db
-        db -->> ctrl : confirmacaoAtualizacao
+        db -->> ctrl : A.06 confirmacaoAtualizacao
         deactivate db
 
-        ctrl -->> tela : cadastroAtualizado
-        tela -->> hospede : atualizarTelaConfirmacao()
+        ctrl -->> tela : A.07 cadastroAtualizado
+        tela -->> hospede : A.08 atualizarTelaConfirmacao()
     end
 
-    hospede -> tela : 5. confirmarCheckIn()
-    tela -> ctrl : processarCheckIn(reserva.id)
+    hospede -> tela : P.14 confirmarCheckIn()
+    tela -> ctrl : P.15 processarCheckIn(reserva.id)
 
-    ctrl -> reserva : atualizarStatus(CHECK_IN)
+    ctrl -> reserva : P.16 realizarCheckIn()
     activate reserva
-    reserva -->> ctrl : statusAtualizado
+    reserva -->> ctrl : P.17 statusAtualizado
     deactivate reserva
 
-    ctrl -> db : salvarStatusReserva(reserva.id, CHECK_IN)
+    ctrl -> db : P.18 salvarStatusReserva(reserva.id, CHECK_IN)
     activate db
-    db -->> ctrl : statusReservaAtualizado
+    db -->> ctrl : P.19 statusReservaAtualizado
     deactivate db
 
-    ctrl -> quarto : atualizarStatus(OCUPADO)
+    ctrl -> quarto : P.20 atualizarStatus(OCUPADO)
     activate quarto
-    quarto -->> ctrl : statusAtualizado
+    quarto -->> ctrl : P.21 statusAtualizado
     deactivate quarto
 
-    ctrl -> db : salvarStatusQuarto(quarto.numero, OCUPADO)
+    ctrl -> db : P.22 salvarStatusQuarto(quarto.numero, OCUPADO)
     activate db
-    db -->> ctrl : statusQuartoAtualizado
+    db -->> ctrl : P.23 statusQuartoAtualizado
     deactivate db
 
-    ctrl -> reserva : abrirContaAutomaticamente()
-    activate reserva
-    
-    create entity "conta : Conta" as conta
-    reserva -> conta : <<create>> (new Conta)
-    reserva -->> ctrl : contaInstanciada
-    deactivate reserva
+    create entity "conta : Conta Hospedagem" as conta
+    ctrl -> conta : P.24 <<create>> (new ContaHospedagem)
+    activate conta
+    conta -->> ctrl : P.25 contaAberta
+    deactivate conta
 
-    ctrl -> db : inserirNovaConta(conta.dados)
+    ctrl -> db : P.26 inserirNovaConta(conta.dados)
     activate db
-    db -->> ctrl : idContaGerado
+    db -->> ctrl : P.27 idContaGerado
     deactivate db
 
-    ctrl -->> tela : confirmacaoSucesso
+    ctrl -->> tela : P.28 confirmacaoSucesso
     deactivate ctrl
 
-    tela -->> hospede : 6. exibirMensagemEInstrucoes()
+    tela -->> hospede : P.29 exibirMensagemEInstrucoes()
     deactivate tela
 end
 
