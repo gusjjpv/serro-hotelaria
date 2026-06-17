@@ -2,7 +2,7 @@ from rest_framework.generics import CreateAPIView, ListCreateAPIView, RetrieveUp
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .serializers import (
-    RegisterSerializer, CustomTokenObtainPairSerializer,
+    RegisterSerializer, GestorRegisterSerializer, CustomTokenObtainPairSerializer,
     UserProfileSerializer, UserAdminSerializer, UserListSerializer,
 )
 from .permissions import IsGestor
@@ -11,6 +11,11 @@ from .models import Usuario
 
 class RegisterView(CreateAPIView):
     serializer_class = RegisterSerializer
+    permission_classes = [AllowAny]
+
+
+class GestorRegisterView(CreateAPIView):
+    serializer_class = GestorRegisterSerializer
     permission_classes = [AllowAny]
 
 
