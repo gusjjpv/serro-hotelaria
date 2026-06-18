@@ -74,4 +74,43 @@ const authenticatedApi = ky.create({
   },
 })
 
+export const hotelApi = ky.create({
+  prefix: '/api',
+  headers: { 'Content-Type': 'application/json' },
+  hooks: {
+    beforeRequest: [
+      ({ request }) => {
+        const token = getAuthToken()
+        if (token) {
+          request.headers.set('Authorization', `Bearer ${token}`)
+        }
+      },
+    ],
+    afterResponse: [
+      async ({ request, response }) => {
+        if (response.status === 401) {
+          const storedRefresh = getRefreshToken()
+          if (storedRefresh) {
+            try {
+              const refreshResponse = await authApi.post('token/refresh/', {
+                json: { refresh: storedRefresh },
+              }).json<{ access: string }>()
+
+              setAuthToken(refreshResponse.access)
+              request.headers.set('Authorization', `Bearer ${refreshResponse.access}`)
+              return ky(request)
+            } catch {
+              clearTokens()
+              onUnauthorized?.()
+            }
+          } else {
+            clearTokens()
+            onUnauthorized?.()
+          }
+        }
+      },
+    ],
+  },
+})
+
 export default authenticatedApi

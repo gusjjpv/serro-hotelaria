@@ -21,6 +21,12 @@ export async function register(data: RegisterRequest) {
   return res
 }
 
+export async function registerGestor(data: RegisterRequest) {
+  const res = await authApi.post('register/gestor/', { json: data }).json<RegisterResponse>()
+  setTokens(res.access, res.refresh)
+  return res
+}
+
 export async function refreshToken(refresh: string) {
   const res = await authApi.post('token/refresh/', { json: { refresh } }).json<{ access: string }>()
   return res

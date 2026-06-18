@@ -18,6 +18,14 @@ export function formatPhone(value: string) {
   return digits.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
 }
 
+export function formatCnpj(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 14)
+  return digits.replace(
+    /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
+    '$1.$2.$3/$4-$5',
+  )
+}
+
 export function formatCep(value: string) {
   const digits = value.replace(/\D/g, '').slice(0, 8)
   return digits.replace(/(\d{5})(\d{3})/, '$1-$2')

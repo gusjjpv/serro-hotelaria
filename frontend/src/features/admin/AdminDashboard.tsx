@@ -29,6 +29,7 @@ const menuGrid = [
   { label: 'Check-in/out', icon: CalendarCheck, href: '/admin/checkin', roles: ['AT', 'SV', 'GE'], ready: false },
   { label: 'Hóspedes', icon: Users, href: '/admin/hospedes', roles: ['AT', 'SV', 'GE'], ready: true },
   { label: 'Funcionários', icon: UserCog, href: '/admin/funcionarios', roles: ['GE'], ready: true },
+  { label: 'Meu Hotel', icon: Building2, href: '/admin/hotel', roles: ['GE'], ready: true },
   { label: 'Cardápio', icon: UtensilsCrossed, href: '/admin/cardapio', roles: ['AT', 'SV', 'GE'], ready: false },
   { label: 'Lançar Consumo', icon: ShoppingCart, href: '/admin/consumo', roles: ['AT', 'SV', 'GE'], ready: false },
   { label: 'Categorias', icon: Tag, href: '/admin/categorias', roles: ['SV', 'GE'], ready: false },

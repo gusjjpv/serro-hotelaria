@@ -3,11 +3,13 @@ import { useAuth } from '@/hooks/useAuth'
 import { Layout } from '@/features/shared/Layout'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
+import { GestorRegisterPage } from '@/features/auth/GestorRegisterPage'
 import { HospedeDashboard } from '@/features/hospede/HospedeDashboard'
 import { AdminDashboard } from '@/features/admin/AdminDashboard'
 import { ProfilePage } from '@/features/shared/ProfilePage'
 import { FuncionariosPage } from '@/features/admin/FuncionariosPage'
 import { HospedesPage } from '@/features/admin/HospedesPage'
+import { HotelPage } from '@/features/admin/HotelPage'
 import { AuthGuard } from '@/features/shared/AuthGuard'
 
 function RoleDashboard() {
@@ -38,6 +40,10 @@ export const router = createBrowserRouter([
     element: <RegisterPage />,
   },
   {
+    path: '/register/gestor',
+    element: <GestorRegisterPage />,
+  },
+  {
     path: '/',
     element: (
       <AuthGuard>
@@ -60,6 +66,10 @@ export const router = createBrowserRouter([
       {
         path: 'admin/hospedes',
         element: <HospedesPage />,
+      },
+      {
+        path: 'admin/hotel',
+        element: <HotelPage />,
       },
     ],
   },

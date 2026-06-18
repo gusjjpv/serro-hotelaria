@@ -10,6 +10,7 @@ interface AuthState {
   role: Role | null
   login: (username: string, password: string) => Promise<void>
   register: (data: any) => Promise<void>
+  registerGestor: (data: any) => Promise<void>
   logout: () => Promise<void>
   loadUser: () => Promise<void>
   setUser: (user: Usuario) => void
@@ -29,6 +30,12 @@ export const useAuth = create<AuthState>((set) => ({
 
   register: async (data) => {
     await authService.register(data)
+    const user = await authService.getMe()
+    set({ user, isAuthenticated: true, role: user.role as Role, isLoading: false })
+  },
+
+  registerGestor: async (data) => {
+    await authService.registerGestor(data)
     const user = await authService.getMe()
     set({ user, isAuthenticated: true, role: user.role as Role, isLoading: false })
   },

@@ -52,12 +52,13 @@ const menuItems: Record<string, MenuItem[]> = {
     { label: 'Categorias', icon: Tag, href: '/admin/categorias', roles: ['SV', 'GE'] },
     { label: 'Manutenção', icon: Wrench, href: '/admin/manutencao', roles: ['SV', 'GE'] },
     { label: 'Funcionários', icon: Users, href: '/admin/funcionarios', roles: ['GE'] },
+    { label: 'Meu Hotel', icon: Building2, href: '/admin/hotel', roles: ['GE'] },
     { label: 'Tarifas', icon: BarChart3, href: '/admin/tarifas', roles: ['GE'] },
     { label: 'Relatórios', icon: BarChart3, href: '/admin/relatorios', roles: ['GE'] },
   ],
 }
 
-const BACKEND_READY = ['/admin/funcionarios', '/admin/hospedes', '/me']
+const BACKEND_READY = ['/admin/funcionarios', '/admin/hospedes', '/admin/hotel', '/me']
 
 interface SidebarProps {
   onLogout: () => void
