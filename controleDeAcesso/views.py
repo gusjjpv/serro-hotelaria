@@ -10,7 +10,15 @@ from .serializers import (
 )
 from .permissions import IsGestor
 from .models import Usuario
-from django.shortcuts import get_object_or_404
+
+
+class FuncionarioQuerysetMixin:
+    def get_queryset(self):
+        from hospedagemInfraestrutura.models import Hotel
+        hotel = Hotel.objects.filter(gestor=self.request.user).first()
+        if not hotel:
+            return Usuario.objects.none()
+        return Usuario.objects.filter(hotel=hotel, role__in=['SV', 'AT'])
 
 
 class RegisterView(CreateAPIView):
@@ -55,7 +63,7 @@ class UserDetailView(RetrieveUpdateDestroyAPIView):
         instance.save()
 
 
-class FuncionarioListView(ListCreateAPIView):
+class FuncionarioListView(FuncionarioQuerysetMixin, ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsGestor]
 
     def get_serializer_class(self):
@@ -64,11 +72,7 @@ class FuncionarioListView(ListCreateAPIView):
         return FuncionarioCreateSerializer
 
     def get_queryset(self):
-        from hospedagemInfraestrutura.models import Hotel
-        hotel = Hotel.objects.filter(gestor=self.request.user).first()
-        if not hotel:
-            return Usuario.objects.none()
-        queryset = Usuario.objects.filter(hotel=hotel, role__in=['SV', 'AT'])
+        queryset = super().get_queryset()
         role = self.request.query_params.get('role')
         if role:
             queryset = queryset.filter(role=role)
@@ -84,28 +88,14 @@ class FuncionarioListView(ListCreateAPIView):
         return queryset
 
 
-class FuncionarioDetailView(RetrieveUpdateAPIView):
+class FuncionarioDetailView(FuncionarioQuerysetMixin, RetrieveUpdateAPIView):
     serializer_class = FuncionarioDetailSerializer
     permission_classes = [IsAuthenticated, IsGestor]
 
-    def get_queryset(self):
-        from hospedagemInfraestrutura.models import Hotel
-        hotel = Hotel.objects.filter(gestor=self.request.user).first()
-        if not hotel:
-            return Usuario.objects.none()
-        return Usuario.objects.filter(hotel=hotel, role__in=['SV', 'AT'])
 
-
-class FuncionarioInativarView(UpdateAPIView):
+class FuncionarioInativarView(FuncionarioQuerysetMixin, UpdateAPIView):
     serializer_class = FuncionarioListSerializer
     permission_classes = [IsAuthenticated, IsGestor]
-
-    def get_queryset(self):
-        from hospedagemInfraestrutura.models import Hotel
-        hotel = Hotel.objects.filter(gestor=self.request.user).first()
-        if not hotel:
-            return Usuario.objects.none()
-        return Usuario.objects.filter(hotel=hotel, role__in=['SV', 'AT'])
 
     def patch(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -114,16 +104,9 @@ class FuncionarioInativarView(UpdateAPIView):
         return Response({'detail': 'Funcionário inativado com sucesso.'}, status=status.HTTP_200_OK)
 
 
-class FuncionarioReativarView(UpdateAPIView):
+class FuncionarioReativarView(FuncionarioQuerysetMixin, UpdateAPIView):
     serializer_class = FuncionarioListSerializer
     permission_classes = [IsAuthenticated, IsGestor]
-
-    def get_queryset(self):
-        from hospedagemInfraestrutura.models import Hotel
-        hotel = Hotel.objects.filter(gestor=self.request.user).first()
-        if not hotel:
-            return Usuario.objects.none()
-        return Usuario.objects.filter(hotel=hotel, role__in=['SV', 'AT'])
 
     def patch(self, request, *args, **kwargs):
         instance = self.get_object()

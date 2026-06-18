@@ -213,10 +213,15 @@ class UserAdminSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        from .service import criar_usuario_por_gestor
+        from .service import criar_usuario_por_gestor, criar_usuario_gestor, criar_usuario
         from hospedagemInfraestrutura.models import Hotel
         request = self.context.get('request')
         hotel = Hotel.objects.filter(gestor=request.user).first() if request else None
+        role = validated_data.get('role')
+        if role == 'GE':
+            return criar_usuario_gestor(validated_data)
+        if role == 'HO':
+            return criar_usuario(validated_data)
         return criar_usuario_por_gestor(validated_data, hotel=hotel)
 
     def update(self, instance, validated_data):

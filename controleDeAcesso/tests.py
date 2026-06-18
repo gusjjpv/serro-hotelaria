@@ -303,6 +303,54 @@ class FuncionarioDetailViewTest(BaseAPITest):
         n2 = int(a2.numeroDeCadastro[3:])
         self.assertEqual(n2, n1 + 1)
 
+    def test_numero_cadastro_acima_de_999(self):
+        Atendente.objects.create(
+            username='atend_999', cpf='77777777777', telefone='85977777777',
+            dataNascimento='1990-01-01', genero='M', endereco=EnderecoFactory.create(),
+            role='AT', email='atend999@test.com', numeroDeCadastro='CAD099',
+        )
+        Atendente.objects.create(
+            username='atend_1000', cpf='77777777778', telefone='85977777778',
+            dataNascimento='1990-01-01', genero='M', endereco=EnderecoFactory.create(),
+            role='AT', email='atend1000@test.com', numeroDeCadastro='CAD100',
+        )
+        a_novo = Atendente.objects.create(
+            username='atend_novo', cpf='77777777779', telefone='85977777779',
+            dataNascimento='1990-01-01', genero='M', endereco=EnderecoFactory.create(),
+            role='AT', email='atendnovo@test.com',
+        )
+        self.assertEqual(a_novo.numeroDeCadastro, 'CAD101')
+
+    def test_user_admin_create_gestor(self):
+        self.auth(self.gestor_token)
+        data = {
+            'first_name': 'Novo',
+            'last_name': 'Gestor',
+            'email': 'novogestor@test.com',
+            'username': 'novogestor',
+            'telefone': '85911111112',
+            'dataNascimento': '1990-01-01',
+            'genero': 'M',
+            'cpf': '11111111112',
+            'senha': 'senha1234',
+            'role': 'GE',
+            'endereco': {
+                'rua': 'Rua Nova',
+                'numero': '100',
+                'complemento': '',
+                'bairro': 'Centro',
+                'cidade': 'Fortaleza',
+                'estado': 'CE',
+                'cep': '60000000',
+            }
+        }
+        response = self.client.post('/api/auth/users/', data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        user = Usuario.objects.get(username='novogestor')
+        self.assertEqual(user.role, 'GE')
+        self.assertFalse(hasattr(user, 'supervisor'))
+        self.assertFalse(hasattr(user, 'atendente'))
+
 
 class FuncionarioInativarReativarTest(BaseAPITest):
     def test_inativar_funcionario(self):
