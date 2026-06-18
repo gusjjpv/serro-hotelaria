@@ -378,3 +378,185 @@ class FuncionarioInativarReativarTest(BaseAPITest):
         self.auth(self.supervisor_token)
         response = self.client.patch(f'/api/auth/funcionarios/{self.atendente.pk}/reativar/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class HospedeListViewTest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.hospede = UsuarioFactory.create(
+            role='HO', username='hospede_crud', cpf='88888888888', telefone='85988888888'
+        )
+
+    def test_list_hospedes_gestor(self):
+        self.auth(self.gestor_token)
+        response = self.client.get('/api/auth/hospedes/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+
+    def test_list_hospedes_atendente(self):
+        self.auth(self.atendente_token)
+        response = self.client.get('/api/auth/hospedes/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_list_hospedes_supervisor_forbidden(self):
+        self.auth(self.supervisor_token)
+        response = self.client.get('/api/auth/hospedes/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_list_hospedes_hospede_forbidden(self):
+        self.auth(self.hospede_token)
+        response = self.client.get('/api/auth/hospedes/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_list_hospedes_unauthenticated(self):
+        response = self.client.get('/api/auth/hospedes/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_search_hospede_by_name(self):
+        self.auth(self.gestor_token)
+        response = self.client.get('/api/auth/hospedes/?search=hospede_crud')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_search_hospede_by_cpf(self):
+        self.auth(self.gestor_token)
+        response = self.client.get('/api/auth/hospedes/?search=88888888888')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_create_hospede_gestor(self):
+        self.auth(self.gestor_token)
+        data = {
+            'first_name': 'Novo',
+            'last_name': 'Hospede',
+            'email': 'novohospede@test.com',
+            'username': 'novohospede',
+            'telefone': '85977777777',
+            'dataNascimento': '1995-05-05',
+            'genero': 'M',
+            'cpf': '77777777777',
+            'senha': 'senha1234',
+            'endereco': {
+                'rua': 'Rua Nova',
+                'numero': '200',
+                'complemento': '',
+                'bairro': 'Centro',
+                'cidade': 'Fortaleza',
+                'estado': 'CE',
+                'cep': '60000000',
+            }
+        }
+        response = self.client.post('/api/auth/hospedes/', data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        user = Usuario.objects.get(username='novohospede')
+        self.assertEqual(user.role, 'HO')
+        self.assertTrue(hasattr(user, 'hospede'))
+
+    def test_create_hospede_atendente(self):
+        self.auth(self.atendente_token)
+        data = {
+            'first_name': 'Hospede',
+            'last_name': 'Atendente',
+            'email': 'hospedeat@test.com',
+            'username': 'hospedeat',
+            'telefone': '85966666666',
+            'dataNascimento': '1995-05-05',
+            'genero': 'M',
+            'cpf': '66666666666',
+            'senha': 'senha1234',
+            'endereco': {
+                'rua': 'Rua Atendente',
+                'numero': '300',
+                'complemento': '',
+                'bairro': 'Centro',
+                'cidade': 'Fortaleza',
+                'estado': 'CE',
+                'cep': '60000000',
+            }
+        }
+        response = self.client.post('/api/auth/hospedes/', data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_hospede_supervisor_forbidden(self):
+        self.auth(self.supervisor_token)
+        data = {
+            'first_name': 'Teste',
+            'last_name': 'Forbidden',
+            'email': 'testeforbidden@test.com',
+            'username': 'testeforbidden',
+            'telefone': '85955555555',
+            'dataNascimento': '1995-05-05',
+            'genero': 'M',
+            'cpf': '55555555555',
+            'senha': 'senha1234',
+            'endereco': {
+                'rua': 'Rua Teste',
+                'numero': '400',
+                'complemento': '',
+                'bairro': 'Centro',
+                'cidade': 'Fortaleza',
+                'estado': 'CE',
+                'cep': '60000000',
+            }
+        }
+        response = self.client.post('/api/auth/hospedes/', data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_create_hospede_hospede_forbidden(self):
+        self.auth(self.hospede_token)
+        data = {
+            'first_name': 'Teste',
+            'last_name': 'Forbidden2',
+            'email': 'testeforbidden2@test.com',
+            'username': 'testeforbidden2',
+            'telefone': '85944444444',
+            'dataNascimento': '1995-05-05',
+            'genero': 'M',
+            'cpf': '44444444444',
+            'senha': 'senha1234',
+            'endereco': {
+                'rua': 'Rua Teste',
+                'numero': '500',
+                'complemento': '',
+                'bairro': 'Centro',
+                'cidade': 'Fortaleza',
+                'estado': 'CE',
+                'cep': '60000000',
+            }
+        }
+        response = self.client.post('/api/auth/hospedes/', data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class HospedeDetailViewTest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.hospede = UsuarioFactory.create(
+            role='HO', username='hospede_detail', cpf='99999999999', telefone='85999999999'
+        )
+
+    def test_get_hospede_detail_gestor(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(f'/api/auth/hospedes/{self.hospede.pk}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], 'hospede_detail')
+
+    def test_get_hospede_detail_atendente(self):
+        self.auth(self.atendente_token)
+        response = self.client.get(f'/api/auth/hospedes/{self.hospede.pk}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_update_hospede_gestor(self):
+        self.auth(self.gestor_token)
+        data = {'first_name': 'Hospede Atualizado'}
+        response = self.client.patch(f'/api/auth/hospedes/{self.hospede.pk}/', data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.hospede.refresh_from_db()
+        self.assertEqual(self.hospede.first_name, 'Hospede Atualizado')
+
+    def test_hospede_detail_has_pontos_fidelidade(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(f'/api/auth/hospedes/{self.hospede.pk}/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('pontosFidelidade', response.data)
+        self.assertEqual(response.data['pontosFidelidade'], 0)
