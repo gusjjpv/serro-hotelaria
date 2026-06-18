@@ -21,6 +21,11 @@ class Usuario(AbstractUser):
     endereco = models.ForeignKey(Endereco, on_delete=models.PROTECT)
     cpf = models.CharField(max_length=11, unique=True)
     dataAtualizacao = models.DateTimeField(auto_now=True)
+    hotel = models.ForeignKey(
+        'hospedagemInfraestrutura.Hotel',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+    )
 
     class Role(models.TextChoices):
         SUPERVISOR = 'SV', 'Supervisor'

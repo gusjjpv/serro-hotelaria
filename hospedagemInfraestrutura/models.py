@@ -1,7 +1,6 @@
 from django.db import models
 from controleDeAcesso.models import Endereco, Usuario
 
-
 class Hotel(models.Model):
     nome = models.CharField(max_length=255)
     cnpj = models.CharField(max_length=18, unique=True)
@@ -10,6 +9,7 @@ class Hotel(models.Model):
     emailContato = models.EmailField()
     gestor = models.OneToOneField(
         Usuario, on_delete=models.CASCADE, limit_choices_to={'role': 'GE'},
+        related_name='+',
     )
     dataCriacao = models.DateTimeField(auto_now_add=True)
     dataAtualizacao = models.DateTimeField(auto_now=True)

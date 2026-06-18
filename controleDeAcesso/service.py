@@ -32,12 +32,13 @@ def criar_usuario_gestor(data):
     return usuario
 
 
-def criar_usuario_por_gestor(data):
+def criar_usuario_por_gestor(data, hotel=None):
     endereco = Endereco.objects.create(**data.pop('endereco'))
     senha = data.pop('senha', None)
 
     usuario = Usuario.objects.create(
         endereco=endereco,
+        hotel=hotel,
         **data,
     )
     if senha:
