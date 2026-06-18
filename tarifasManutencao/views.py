@@ -13,13 +13,6 @@ class TarifaListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         return Tarifa.objects.filter(categoria__hotel__gestor=self.request.user)
 
-    def perform_create(self, serializer):
-        categoria = serializer.validated_data['categoria']
-        if not categoria.hotel.gestor == self.request.user:
-            from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied('Categoria nao pertence ao seu hotel.')
-        serializer.save()
-
 
 class TarifaDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TarifaSerializer
