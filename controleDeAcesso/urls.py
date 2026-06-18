@@ -5,6 +5,7 @@ from .views import (
     UserListCreateView, UserDetailView,
     FuncionarioListView, FuncionarioDetailView,
     FuncionarioInativarView, FuncionarioReativarView,
+    HospedeListView, HospedeDetailView,
 )
 
 urlpatterns = [
@@ -31,4 +32,8 @@ urlpatterns = [
     path('funcionarios/<int:pk>/', FuncionarioDetailView.as_view(), name='funcionario-detail'),
     path('funcionarios/<int:pk>/inativar/', FuncionarioInativarView.as_view(), name='funcionario-inativar'),
     path('funcionarios/<int:pk>/reativar/', FuncionarioReativarView.as_view(), name='funcionario-reativar'),
+
+    # Gestor e Atendente: gestão de hóspedes
+    path('hospedes/', HospedeListView.as_view(), name='hospede-list'),
+    path('hospedes/<int:pk>/', HospedeDetailView.as_view(), name='hospede-detail'),
 ]

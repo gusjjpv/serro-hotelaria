@@ -1,19 +1,21 @@
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Usuario, Endereco, Atendente, Supervisor
+from .models import Usuario, Endereco, Atendente, Supervisor, Hospede
 
 
 def criar_usuario(data):
     endereco = Endereco.objects.create(**data.pop('endereco'))
     senha = data.pop('senha')
+    data.pop('role', None)
 
-    usuario = Usuario.objects.create(
+    usuario = Hospede.objects.create(
         endereco=endereco,
         role=Usuario.Role.HOSPEDE,
         **data,
     )
-    usuario.set_password(senha)
+    if senha:
+        usuario.set_password(senha)
     usuario.save()
     return usuario
 

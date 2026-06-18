@@ -24,3 +24,8 @@ class IsFuncionario(permissions.BasePermission):
 class IsHospede(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == 'HO'
+
+
+class IsAtendenteOuGestor(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role in ('GE', 'AT')

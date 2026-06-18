@@ -7,8 +7,9 @@ from .serializers import (
     RegisterSerializer, GestorRegisterSerializer, CustomTokenObtainPairSerializer,
     UserProfileSerializer, UserAdminSerializer, UserListSerializer,
     FuncionarioListSerializer, FuncionarioDetailSerializer, FuncionarioCreateSerializer,
+    HospedeListSerializer, HospedeDetailSerializer, HospedeCreateSerializer,
 )
-from .permissions import IsGestor
+from .permissions import IsGestor, IsAtendenteOuGestor
 from .models import Usuario
 
 
@@ -113,3 +114,31 @@ class FuncionarioReativarView(FuncionarioQuerysetMixin, UpdateAPIView):
         instance.is_active = True
         instance.save()
         return Response({'detail': 'Funcionário reativado com sucesso.'}, status=status.HTTP_200_OK)
+
+
+class HospedeListView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsAtendenteOuGestor]
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return HospedeListSerializer
+        return HospedeCreateSerializer
+
+    def get_queryset(self):
+        queryset = Usuario.objects.filter(role='HO').select_related('hospede')
+        search = self.request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(username__icontains=search) |
+                Q(cpf__icontains=search)
+            )
+        return queryset
+
+
+class HospedeDetailView(RetrieveUpdateAPIView):
+    serializer_class = HospedeDetailSerializer
+    permission_classes = [IsAuthenticated, IsAtendenteOuGestor]
+    queryset = Usuario.objects.filter(role='HO').select_related('hospede')

@@ -11,18 +11,7 @@ class EnderecoSerializer(serializers.ModelSerializer):
         fields = ['rua', 'numero', 'complemento', 'bairro', 'cidade', 'estado', 'cep']
 
 
-class RegisterSerializer(serializers.Serializer):
-    first_name = serializers.CharField(max_length=30)
-    last_name = serializers.CharField(max_length=30)
-    email = serializers.EmailField()
-    username = serializers.CharField(max_length=20)
-    telefone = serializers.CharField(max_length=14)
-    dataNascimento = serializers.DateField()
-    genero = serializers.CharField(max_length=10)
-    cpf = serializers.CharField(max_length=11)
-    senha = serializers.CharField(write_only=True, min_length=8)
-    endereco = EnderecoSerializer()
-
+class UsuarioUniquenessValidatorMixin:
     def validate_email(self, value):
         if Usuario.objects.filter(email=value).exists():
             raise serializers.ValidationError("Este email já está cadastrado.")
@@ -42,6 +31,19 @@ class RegisterSerializer(serializers.Serializer):
         if Usuario.objects.filter(telefone=value).exists():
             raise serializers.ValidationError("Este telefone já está cadastrado.")
         return value
+
+
+class RegisterSerializer(UsuarioUniquenessValidatorMixin, serializers.Serializer):
+    first_name = serializers.CharField(max_length=30)
+    last_name = serializers.CharField(max_length=30)
+    email = serializers.EmailField()
+    username = serializers.CharField(max_length=20)
+    telefone = serializers.CharField(max_length=14)
+    dataNascimento = serializers.DateField()
+    genero = serializers.CharField(max_length=10)
+    cpf = serializers.CharField(max_length=11)
+    senha = serializers.CharField(write_only=True, min_length=8)
+    endereco = EnderecoSerializer()
 
     def create(self, validated_data):
         usuario = criar_usuario(validated_data)
@@ -64,7 +66,7 @@ class RegisterSerializer(serializers.Serializer):
         }
 
 
-class GestorRegisterSerializer(serializers.Serializer):
+class GestorRegisterSerializer(UsuarioUniquenessValidatorMixin, serializers.Serializer):
     first_name = serializers.CharField(max_length=30)
     last_name = serializers.CharField(max_length=30)
     email = serializers.EmailField()
@@ -75,26 +77,6 @@ class GestorRegisterSerializer(serializers.Serializer):
     cpf = serializers.CharField(max_length=11)
     senha = serializers.CharField(write_only=True, min_length=8)
     endereco = EnderecoSerializer()
-
-    def validate_email(self, value):
-        if Usuario.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Este email já está cadastrado.")
-        return value
-
-    def validate_username(self, value):
-        if Usuario.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Este username já está em uso.")
-        return value
-
-    def validate_cpf(self, value):
-        if Usuario.objects.filter(cpf=value).exists():
-            raise serializers.ValidationError("Este CPF já está cadastrado.")
-        return value
-
-    def validate_telefone(self, value):
-        if Usuario.objects.filter(telefone=value).exists():
-            raise serializers.ValidationError("Este telefone já está cadastrado.")
-        return value
 
     def create(self, validated_data):
         usuario = criar_usuario_gestor(validated_data)
@@ -277,7 +259,7 @@ class FuncionarioDetailSerializer(serializers.ModelSerializer):
         return None
 
 
-class FuncionarioCreateSerializer(serializers.Serializer):
+class FuncionarioCreateSerializer(UsuarioUniquenessValidatorMixin, serializers.Serializer):
     first_name = serializers.CharField(max_length=30)
     last_name = serializers.CharField(max_length=30)
     email = serializers.EmailField()
@@ -290,29 +272,60 @@ class FuncionarioCreateSerializer(serializers.Serializer):
     endereco = EnderecoSerializer()
     role = serializers.ChoiceField(choices=[('SV', 'Supervisor'), ('AT', 'Atendente')])
 
-    def validate_email(self, value):
-        if Usuario.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Este email já está cadastrado.")
-        return value
-
-    def validate_username(self, value):
-        if Usuario.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Este username já está em uso.")
-        return value
-
-    def validate_cpf(self, value):
-        if Usuario.objects.filter(cpf=value).exists():
-            raise serializers.ValidationError("Este CPF já está cadastrado.")
-        return value
-
-    def validate_telefone(self, value):
-        if Usuario.objects.filter(telefone=value).exists():
-            raise serializers.ValidationError("Este telefone já está cadastrado.")
-        return value
-
     def create(self, validated_data):
         from .service import criar_usuario_por_gestor
         from hospedagemInfraestrutura.models import Hotel
         request = self.context.get('request')
         hotel = Hotel.objects.filter(gestor=request.user).first() if request else None
         return criar_usuario_por_gestor(validated_data, hotel=hotel)
+
+
+class HospedeListSerializer(serializers.ModelSerializer):
+    pontosFidelidade = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'cpf', 'pontosFidelidade', 'is_active', 'date_joined',
+        ]
+
+    def get_pontosFidelidade(self, obj):
+        if hasattr(obj, 'hospede'):
+            return obj.hospede.pontosFidelidade
+        return 0
+
+
+class HospedeDetailSerializer(serializers.ModelSerializer):
+    endereco = EnderecoSerializer()
+    pontosFidelidade = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'telefone', 'cpf', 'dataNascimento', 'genero',
+            'role', 'endereco', 'is_active', 'pontosFidelidade', 'date_joined',
+        ]
+
+    def get_pontosFidelidade(self, obj):
+        if hasattr(obj, 'hospede'):
+            return obj.hospede.pontosFidelidade
+        return 0
+
+
+class HospedeCreateSerializer(UsuarioUniquenessValidatorMixin, serializers.Serializer):
+    first_name = serializers.CharField(max_length=30)
+    last_name = serializers.CharField(max_length=30)
+    email = serializers.EmailField()
+    username = serializers.CharField(max_length=20)
+    telefone = serializers.CharField(max_length=14)
+    dataNascimento = serializers.DateField()
+    genero = serializers.CharField(max_length=10)
+    cpf = serializers.CharField(max_length=11)
+    senha = serializers.CharField(write_only=True, min_length=8)
+    endereco = EnderecoSerializer()
+
+    def create(self, validated_data):
+        from .service import criar_usuario
+        return criar_usuario(validated_data)
