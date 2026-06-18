@@ -214,7 +214,10 @@ class UserAdminSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         from .service import criar_usuario_por_gestor
-        return criar_usuario_por_gestor(validated_data)
+        from hospedagemInfraestrutura.models import Hotel
+        request = self.context.get('request')
+        hotel = Hotel.objects.filter(gestor=request.user).first() if request else None
+        return criar_usuario_por_gestor(validated_data, hotel=hotel)
 
     def update(self, instance, validated_data):
         endereco_data = validated_data.pop('endereco', None)
