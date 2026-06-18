@@ -55,7 +55,7 @@ class CategoriaQuartoSerializer(serializers.ModelSerializer):
     class Meta:
         model = CategoriaQuarto
         fields = [
-            'id', 'hotel', 'nome', 'descricao', 'capacidade',
+            'id', 'hotel', 'nome', 'descricao', 'capacidade', 'precoBase',
             'dataCriacao', 'dataAtualizacao',
         ]
         read_only_fields = ['id', 'hotel', 'dataCriacao', 'dataAtualizacao']
