@@ -359,6 +359,13 @@ class CategoriaQuartoAPITest(BaseAPITest):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(CategoriaQuarto.objects.filter(pk=self.categoria.pk).exists())
 
+    def test_delete_categoria_with_quartos_fails(self):
+        self.auth(self.gestor_token)
+        from django.db.models.deletion import ProtectedError
+        with self.assertRaises(ProtectedError):
+            self.categoria.delete()
+        self.assertTrue(CategoriaQuarto.objects.filter(pk=self.categoria.pk).exists())
+
     def test_create_categoria_auto_assigns_hotel(self):
         self.auth(self.gestor_token)
         data = {'nome': 'Suite', 'descricao': 'Suite', 'capacidade': 2}

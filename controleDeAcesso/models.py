@@ -49,6 +49,22 @@ class Hospede(Usuario):
 class Atendente(Usuario):
     numeroDeCadastro = models.CharField(max_length=20, unique=True)
 
+    def save(self, *args, **kwargs):
+        if not self.numeroDeCadastro:
+            ultimo = (
+                Atendente.objects
+                .filter(numeroDeCadastro__startswith='CAD')
+                .order_by('-numeroDeCadastro')
+                .values_list('numeroDeCadastro', flat=True)
+                .first()
+            )
+            if ultimo:
+                sequencia = int(ultimo[3:]) + 1
+            else:
+                sequencia = 1
+            self.numeroDeCadastro = f'CAD{sequencia:03d}'
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.username} - Cadastro: {self.numeroDeCadastro}"
 

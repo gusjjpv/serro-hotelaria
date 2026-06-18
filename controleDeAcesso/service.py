@@ -1,7 +1,7 @@
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Usuario, Endereco
+from .models import Usuario, Endereco, Atendente, Supervisor
 
 
 def criar_usuario(data):
@@ -35,15 +35,18 @@ def criar_usuario_gestor(data):
 def criar_usuario_por_gestor(data, hotel=None):
     endereco = Endereco.objects.create(**data.pop('endereco'))
     senha = data.pop('senha', None)
+    role = data.pop('role')
 
-    usuario = Usuario.objects.create(
+    Model = Atendente if role == 'AT' else Supervisor
+    usuario = Model.objects.create(
         endereco=endereco,
         hotel=hotel,
+        role=role,
         **data,
     )
     if senha:
         usuario.set_password(senha)
-    usuario.save()
+        usuario.save()
     return usuario
 
 
@@ -63,3 +66,15 @@ def enviar_email_boas_vindas(usuario):
         recipient_list=[usuario.email],
         fail_silently=False,
     )
+
+
+def inativar_usuario(usuario):
+    usuario.is_active = False
+    usuario.save()
+    return usuario
+
+
+def reativar_usuario(usuario):
+    usuario.is_active = True
+    usuario.save()
+    return usuario
