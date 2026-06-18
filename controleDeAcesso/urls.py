@@ -1,6 +1,11 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import RegisterView, GestorRegisterView, CustomTokenObtainPairView, MeView, UserListCreateView, UserDetailView
+from .views import (
+    RegisterView, GestorRegisterView, CustomTokenObtainPairView, MeView,
+    UserListCreateView, UserDetailView,
+    FuncionarioListView, FuncionarioDetailView,
+    FuncionarioInativarView, FuncionarioReativarView,
+)
 
 urlpatterns = [
     # Público: cadastro de hóspede (role=HO)
@@ -20,4 +25,10 @@ urlpatterns = [
     path('users/', UserListCreateView.as_view(), name='user-list'),
     # Gestor apenas: GET/PUT/PATCH/DELETE de um usuário (DELETE = desativar)
     path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
+
+    # Gestor apenas: funcionários do hotel
+    path('funcionarios/', FuncionarioListView.as_view(), name='funcionario-list'),
+    path('funcionarios/<int:pk>/', FuncionarioDetailView.as_view(), name='funcionario-detail'),
+    path('funcionarios/<int:pk>/inativar/', FuncionarioInativarView.as_view(), name='funcionario-inativar'),
+    path('funcionarios/<int:pk>/reativar/', FuncionarioReativarView.as_view(), name='funcionario-reativar'),
 ]

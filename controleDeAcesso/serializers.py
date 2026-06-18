@@ -213,10 +213,15 @@ class UserAdminSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        from .service import criar_usuario_por_gestor
+        from .service import criar_usuario_por_gestor, criar_usuario_gestor, criar_usuario
         from hospedagemInfraestrutura.models import Hotel
         request = self.context.get('request')
         hotel = Hotel.objects.filter(gestor=request.user).first() if request else None
+        role = validated_data.get('role')
+        if role == 'GE':
+            return criar_usuario_gestor(validated_data)
+        if role == 'HO':
+            return criar_usuario(validated_data)
         return criar_usuario_por_gestor(validated_data, hotel=hotel)
 
     def update(self, instance, validated_data):
@@ -243,3 +248,71 @@ class UserListSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'role', 'is_active', 'date_joined',
         ]
+
+
+class FuncionarioListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Usuario
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'role', 'is_active', 'date_joined',
+        ]
+
+
+class FuncionarioDetailSerializer(serializers.ModelSerializer):
+    endereco = EnderecoSerializer()
+    numeroDeCadastro = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'telefone', 'cpf', 'dataNascimento', 'genero',
+            'role', 'endereco', 'is_active', 'numeroDeCadastro', 'date_joined',
+        ]
+
+    def get_numeroDeCadastro(self, obj):
+        if obj.role == 'AT' and hasattr(obj, 'atendente'):
+            return obj.atendente.numeroDeCadastro
+        return None
+
+
+class FuncionarioCreateSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=30)
+    last_name = serializers.CharField(max_length=30)
+    email = serializers.EmailField()
+    username = serializers.CharField(max_length=20)
+    telefone = serializers.CharField(max_length=14)
+    dataNascimento = serializers.DateField()
+    genero = serializers.CharField(max_length=10)
+    cpf = serializers.CharField(max_length=11)
+    senha = serializers.CharField(write_only=True, min_length=8)
+    endereco = EnderecoSerializer()
+    role = serializers.ChoiceField(choices=[('SV', 'Supervisor'), ('AT', 'Atendente')])
+
+    def validate_email(self, value):
+        if Usuario.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Este email já está cadastrado.")
+        return value
+
+    def validate_username(self, value):
+        if Usuario.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Este username já está em uso.")
+        return value
+
+    def validate_cpf(self, value):
+        if Usuario.objects.filter(cpf=value).exists():
+            raise serializers.ValidationError("Este CPF já está cadastrado.")
+        return value
+
+    def validate_telefone(self, value):
+        if Usuario.objects.filter(telefone=value).exists():
+            raise serializers.ValidationError("Este telefone já está cadastrado.")
+        return value
+
+    def create(self, validated_data):
+        from .service import criar_usuario_por_gestor
+        from hospedagemInfraestrutura.models import Hotel
+        request = self.context.get('request')
+        hotel = Hotel.objects.filter(gestor=request.user).first() if request else None
+        return criar_usuario_por_gestor(validated_data, hotel=hotel)
