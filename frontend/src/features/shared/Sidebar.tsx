@@ -58,7 +58,7 @@ const menuItems: Record<string, MenuItem[]> = {
   ],
 }
 
-const BACKEND_READY = ['/admin/funcionarios', '/admin/hospedes', '/admin/hotel', '/admin/categorias', '/admin/quartos', '/me']
+const BACKEND_READY = ['/admin/funcionarios', '/admin/hospedes', '/admin/hotel', '/admin/categorias', '/admin/quartos', '/admin/tarifas', '/me']
 
 interface SidebarProps {
   onLogout: () => void

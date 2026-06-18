@@ -12,6 +12,7 @@ import { HospedesPage } from '@/features/admin/HospedesPage'
 import { HotelPage } from '@/features/admin/HotelPage'
 import { CategoriasPage } from '@/features/admin/CategoriasPage'
 import { QuartosPage } from '@/features/admin/QuartosPage'
+import { TarifasPage } from '@/features/admin/TarifasPage'
 import { AuthGuard } from '@/features/shared/AuthGuard'
 
 function RoleDashboard() {
@@ -80,6 +81,10 @@ export const router = createBrowserRouter([
       {
         path: 'admin/quartos',
         element: <QuartosPage />,
+      },
+      {
+        path: 'admin/tarifas',
+        element: <TarifasPage />,
       },
     ],
   },

@@ -6,11 +6,12 @@ class TarifaSerializer(serializers.ModelSerializer):
     tipoTemporada_display = serializers.CharField(
         source='get_tipoTemporada_display', read_only=True,
     )
+    categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
 
     class Meta:
         model = Tarifa
         fields = [
-            'id', 'categoria', 'valorDiaria', 'dataInicio', 'dataFim',
+            'id', 'categoria', 'categoria_nome', 'valorDiaria', 'dataInicio', 'dataFim',
             'tipoTemporada', 'tipoTemporada_display',
             'dataCriacao', 'dataAtualizacao',
         ]

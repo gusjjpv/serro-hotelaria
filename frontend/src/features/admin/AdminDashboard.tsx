@@ -34,7 +34,7 @@ const menuGrid = [
   { label: 'Lançar Consumo', icon: ShoppingCart, href: '/admin/consumo', roles: ['AT', 'SV', 'GE'], ready: false },
   { label: 'Categorias', icon: Tag, href: '/admin/categorias', roles: ['SV', 'GE'], ready: true },
   { label: 'Manutenção', icon: Wrench, href: '/admin/manutencao', roles: ['SV', 'GE'], ready: false },
-  { label: 'Tarifas', icon: TrendingUp, href: '/admin/tarifas', roles: ['GE'], ready: false },
+  { label: 'Tarifas', icon: TrendingUp, href: '/admin/tarifas', roles: ['GE'], ready: true },
   { label: 'Relatórios', icon: BarChart3, href: '/admin/relatorios', roles: ['GE'], ready: false },
 ]
 
