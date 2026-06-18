@@ -10,6 +10,8 @@ import { ProfilePage } from '@/features/shared/ProfilePage'
 import { FuncionariosPage } from '@/features/admin/FuncionariosPage'
 import { HospedesPage } from '@/features/admin/HospedesPage'
 import { HotelPage } from '@/features/admin/HotelPage'
+import { CategoriasPage } from '@/features/admin/CategoriasPage'
+import { QuartosPage } from '@/features/admin/QuartosPage'
 import { AuthGuard } from '@/features/shared/AuthGuard'
 
 function RoleDashboard() {
@@ -70,6 +72,14 @@ export const router = createBrowserRouter([
       {
         path: 'admin/hotel',
         element: <HotelPage />,
+      },
+      {
+        path: 'admin/categorias',
+        element: <CategoriasPage />,
+      },
+      {
+        path: 'admin/quartos',
+        element: <QuartosPage />,
       },
     ],
   },

@@ -40,6 +40,14 @@ export async function listUsers() {
   return authenticatedApi.get('users/').json<UserListResponse[]>()
 }
 
+export async function listFuncionarios() {
+  return authenticatedApi.get('funcionarios/').json<UserListResponse[]>()
+}
+
+export async function listHospedes() {
+  return authenticatedApi.get('hospedes/').json<UserListResponse[]>()
+}
+
 export async function createUser(data: UserCreateRequest) {
   return authenticatedApi.post('users/', { json: data }).json<UserListResponse>()
 }

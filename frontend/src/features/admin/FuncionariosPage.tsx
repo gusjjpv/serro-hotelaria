@@ -7,6 +7,7 @@ import { Select } from '@/features/shared/Select'
 import { getRoleLabel, getRoleColor, formatDate, cn } from '@/lib/utils'
 import { generoOptions, estadoOptions } from '@/lib/constants'
 import * as authService from '@/services/endpoints/auth'
+import * as hotelService from '@/services/endpoints/hotel'
 import type { UserListResponse, UserCreateRequest, Role } from '@/types'
 import {
   Plus,
@@ -21,12 +22,12 @@ import {
   Calendar,
   UserCheck,
   UserX,
+  Building2,
 } from 'lucide-react'
 
 const roleOptions = [
   { value: 'AT', label: 'Atendente' },
   { value: 'SV', label: 'Supervisor' },
-  { value: 'GE', label: 'Gestor' },
 ]
 
 const emptyForm: UserCreateRequest = {
@@ -59,11 +60,12 @@ export function FuncionariosPage() {
   const [form, setForm] = useState<UserCreateRequest>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [hotelName, setHotelName] = useState('')
 
   const loadUsers = async () => {
     try {
-      const data = await authService.listUsers()
-      setUsers(data.filter(u => u.role !== 'HO'))
+      const data = await authService.listFuncionarios()
+      setUsers(data)
       setError('')
     } catch {
       setError('Erro ao carregar lista de funcionários.')
@@ -72,7 +74,10 @@ export function FuncionariosPage() {
     }
   }
 
-  useEffect(() => { loadUsers() }, [])
+  useEffect(() => {
+    loadUsers()
+    hotelService.getHotel().then(h => setHotelName(h.nome)).catch(() => {})
+  }, [])
 
   const filteredUsers = users.filter((u: UserListResponse) =>
     u.first_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -104,6 +109,7 @@ export function FuncionariosPage() {
         role: user.role === 'HO' ? 'AT' : user.role,
         senha: '',
         endereco: { ...user.endereco },
+        is_active: user.is_active,
       })
       setEditingId(id)
       setShowModal(true)
@@ -154,8 +160,11 @@ export function FuncionariosPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Funcionários</h1>
-          <p className="text-muted mt-1">Gerencie os perfis da equipe</p>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Building2 className="h-6 w-6 text-primary-500" />
+            {hotelName || 'Hotel'}
+          </h1>
+          <p className="text-muted mt-1">Funcionários — Gerencie os perfis da equipe</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" />
@@ -349,6 +358,30 @@ export function FuncionariosPage() {
                     <Input label="Senha" type="password" placeholder={editingId ? "Deixe em branco para manter" : "Mínimo 8 caracteres"} value={form.senha}
                       onChange={e => setForm({...form, senha: e.target.value})} />
                   </div>
+
+                  {editingId && (
+                    <div className="flex items-center justify-between rounded-xl border-2 border-gray-200 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Status</p>
+                        <p className="text-xs text-muted">
+                          {form.is_active !== false ? 'Funcionário ativo no sistema' : 'Funcionário inativo — não faz login'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setForm({...form, is_active: form.is_active === false})}
+                        className={cn(
+                          'relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+                          form.is_active !== false ? 'bg-green-500' : 'bg-gray-300',
+                        )}
+                      >
+                        <span className={cn(
+                          'pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                          form.is_active !== false ? 'translate-x-5' : 'translate-x-0',
+                        )} />
+                      </button>
+                    </div>
+                  )}
 
                   <hr className="border-gray-100" />
                   <h3 className="font-medium text-gray-900">Endereço</h3>
