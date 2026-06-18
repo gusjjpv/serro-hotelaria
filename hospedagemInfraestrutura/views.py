@@ -2,9 +2,9 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
-from controleDeAcesso.permissions import IsGestor
-from .models import Hotel
-from .serializers import HotelSerializer
+from controleDeAcesso.permissions import IsGestor, IsSupervisor, IsAtendente
+from .models import Hotel, CategoriaQuarto, Quarto
+from .serializers import HotelSerializer, CategoriaQuartoSerializer, QuartoSerializer
 
 
 class HotelRegisterView(generics.CreateAPIView):
@@ -22,3 +22,71 @@ class HotelManageView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return get_object_or_404(Hotel, gestor=self.request.user)
+
+
+class CategoriaQuartoListCreateView(generics.ListCreateAPIView):
+    serializer_class = CategoriaQuartoSerializer
+    permission_classes = [IsAuthenticated, IsSupervisor]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'GE':
+            return CategoriaQuarto.objects.filter(hotel__gestor=user)
+        return CategoriaQuarto.objects.filter(hotel=user.hotel)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.role == 'GE':
+            hotel = get_object_or_404(Hotel, gestor=user)
+        else:
+            hotel = user.hotel
+        serializer.save(hotel=hotel)
+
+
+class CategoriaQuartoDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CategoriaQuartoSerializer
+    permission_classes = [IsAuthenticated, IsSupervisor]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'GE':
+            return CategoriaQuarto.objects.filter(hotel__gestor=user)
+        return CategoriaQuarto.objects.filter(hotel=user.hotel)
+
+
+class QuartoListCreateView(generics.ListCreateAPIView):
+    serializer_class = QuartoSerializer
+    permission_classes = [IsAuthenticated, IsSupervisor]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'GE':
+            return Quarto.objects.filter(hotel__gestor=user)
+        return Quarto.objects.filter(hotel=user.hotel)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.role == 'GE':
+            hotel = get_object_or_404(Hotel, gestor=user)
+        else:
+            hotel = user.hotel
+        serializer.save(hotel=hotel)
+
+
+class QuartoDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = QuartoSerializer
+    permission_classes = [IsAuthenticated, IsSupervisor]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'GE':
+            return Quarto.objects.filter(hotel__gestor=user)
+        return Quarto.objects.filter(hotel=user.hotel)
+
+
+class QuartoDisponivelListView(generics.ListAPIView):
+    serializer_class = QuartoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Quarto.objects.filter(status='DISP')

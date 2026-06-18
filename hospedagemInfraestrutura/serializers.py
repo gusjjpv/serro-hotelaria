@@ -3,7 +3,7 @@ import re
 from rest_framework import serializers
 
 from controleDeAcesso.serializers import EnderecoSerializer
-from .models import Hotel
+from .models import Hotel, CategoriaQuarto, Quarto, StatusQuarto
 from .service import validar_cnpj, formatar_cnpj
 
 
@@ -49,3 +49,30 @@ class HotelSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class CategoriaQuartoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CategoriaQuarto
+        fields = [
+            'id', 'hotel', 'nome', 'descricao', 'capacidade',
+            'dataCriacao', 'dataAtualizacao',
+        ]
+        read_only_fields = ['id', 'hotel', 'dataCriacao', 'dataAtualizacao']
+
+
+class QuartoSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = Quarto
+        fields = [
+            'id', 'hotel', 'numero', 'andar', 'categoria', 'status',
+            'status_display', 'dataCriacao', 'dataAtualizacao',
+        ]
+        read_only_fields = ['id', 'hotel', 'dataCriacao', 'dataAtualizacao']
+
+    def validate_status(self, value):
+        if value not in StatusQuarto.values:
+            raise serializers.ValidationError(f'Status inválido. Opções: {", ".join(StatusQuarto.values)}')
+        return value
