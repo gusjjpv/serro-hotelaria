@@ -113,4 +113,9 @@ export const hotelApi = ky.create({
   },
 })
 
+export const publicApi = ky.create({
+  prefix: '/api',
+  headers: { 'Content-Type': 'application/json' },
+})
+
 export default authenticatedApi

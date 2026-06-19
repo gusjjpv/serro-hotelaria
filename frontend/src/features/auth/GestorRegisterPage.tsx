@@ -126,7 +126,7 @@ export function GestorRegisterPage() {
           cep: formData.endereco.cep.replace(/\D/g, ''),
         },
       })
-      navigate('/')
+      navigate('/app')
     } catch (err) {
       setApiError(await extractError(err))
     } finally {

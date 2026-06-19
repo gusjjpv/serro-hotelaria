@@ -1,11 +1,14 @@
 from django.urls import path
 from .views import (
     HotelRegisterView, HotelManageView,
+    HotelPublicListView, HotelPublicDetailView,
     CategoriaQuartoListCreateView, CategoriaQuartoDetailView,
     QuartoListCreateView, QuartoDetailView, QuartoDisponivelListView,
 )
 
 urlpatterns = [
+    path('hoteis/', HotelPublicListView.as_view(), name='hotel-public-list'),
+    path('hoteis/<int:pk>/', HotelPublicDetailView.as_view(), name='hotel-public-detail'),
     path('hotel/register/', HotelRegisterView.as_view(), name='hotel-register'),
     path('hotel/', HotelManageView.as_view(), name='hotel-manage'),
     path('categorias/', CategoriaQuartoListCreateView.as_view(), name='categoria-list'),

@@ -1,9 +1,15 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Layout } from '@/features/shared/Layout'
+import { PublicLayout } from '@/features/shared/PublicLayout'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { GestorRegisterPage } from '@/features/auth/GestorRegisterPage'
+import { LandingPage } from '@/features/public/LandingPage'
+import { HotelDetailPage } from '@/features/public/HotelDetailPage'
+import { ResultadosPage } from '@/features/public/ResultadosPage'
+import { CheckoutPage } from '@/features/public/CheckoutPage'
+import { ReservaSucessoPage } from '@/features/public/ReservaSucessoPage'
 import { HospedeDashboard } from '@/features/hospede/HospedeDashboard'
 import { AdminDashboard } from '@/features/admin/AdminDashboard'
 import { ProfilePage } from '@/features/shared/ProfilePage'
@@ -47,7 +53,32 @@ export const router = createBrowserRouter([
     element: <GestorRegisterPage />,
   },
   {
-    path: '/',
+    element: <PublicLayout />,
+    children: [
+      {
+        path: '/',
+        element: <LandingPage />,
+      },
+      {
+        path: 'hoteis/:id',
+        element: <HotelDetailPage />,
+      },
+      {
+        path: 'disponibilidade',
+        element: <ResultadosPage />,
+      },
+      {
+        path: 'reservar',
+        element: <CheckoutPage />,
+      },
+      {
+        path: 'reserva-sucesso',
+        element: <ReservaSucessoPage />,
+      },
+    ],
+  },
+  {
+    path: '/app',
     element: (
       <AuthGuard>
         <Layout />

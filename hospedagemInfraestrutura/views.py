@@ -1,10 +1,14 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from controleDeAcesso.permissions import IsGestor, IsSupervisor, IsAtendente
 from .models import Hotel, CategoriaQuarto, Quarto
-from .serializers import HotelSerializer, CategoriaQuartoSerializer, QuartoSerializer
+from .serializers import (
+    HotelSerializer, CategoriaQuartoSerializer, QuartoSerializer,
+    HotelPublicSerializer, HotelPublicDetailSerializer,
+)
 
 
 class HotelRegisterView(generics.CreateAPIView):
@@ -90,3 +94,23 @@ class QuartoDisponivelListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Quarto.objects.filter(status='DISP')
+
+
+class HotelPublicListView(generics.ListAPIView):
+    serializer_class = HotelPublicSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        qs = Hotel.objects.select_related('endereco').all()
+        search = self.request.query_params.get('search')
+        if search:
+            qs = qs.filter(
+                Q(nome__icontains=search) | Q(endereco__cidade__icontains=search)
+            )
+        return qs
+
+
+class HotelPublicDetailView(generics.RetrieveAPIView):
+    serializer_class = HotelPublicDetailSerializer
+    permission_classes = [AllowAny]
+    queryset = Hotel.objects.select_related('endereco').prefetch_related('categorias__quartos')

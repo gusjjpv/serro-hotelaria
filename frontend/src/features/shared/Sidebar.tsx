@@ -33,32 +33,32 @@ interface MenuItem {
 
 const menuItems: Record<string, MenuItem[]> = {
   general: [
-    { label: 'Dashboard', icon: LayoutDashboard, href: '/', roles: ['HO', 'AT', 'SV', 'GE'] },
-    { label: 'Meu Perfil', icon: UserCircle, href: '/me', roles: ['HO', 'AT', 'SV', 'GE'] },
+    { label: 'Dashboard', icon: LayoutDashboard, href: '/app', roles: ['HO', 'AT', 'SV', 'GE'] },
+    { label: 'Meu Perfil', icon: UserCircle, href: '/app/me', roles: ['HO', 'AT', 'SV', 'GE'] },
   ],
   hospede: [
-    { label: 'Minhas Reservas', icon: CalendarCheck, href: '/minhas-reservas', roles: ['HO'] },
-    { label: 'Check-in Online', icon: BedDouble, href: '/checkin', roles: ['HO'] },
-    { label: 'Extrato', icon: ClipboardList, href: '/extrato', roles: ['HO'] },
-    { label: 'Serviços de Quarto', icon: ShoppingCart, href: '/servicos', roles: ['HO'] },
-    { label: 'Fidelidade', icon: Star, href: '/fidelidade', roles: ['HO'] },
+    { label: 'Minhas Reservas', icon: CalendarCheck, href: '/app/minhas-reservas', roles: ['HO'] },
+    { label: 'Check-in Online', icon: BedDouble, href: '/app/checkin', roles: ['HO'] },
+    { label: 'Extrato', icon: ClipboardList, href: '/app/extrato', roles: ['HO'] },
+    { label: 'Serviços de Quarto', icon: ShoppingCart, href: '/app/servicos', roles: ['HO'] },
+    { label: 'Fidelidade', icon: Star, href: '/app/fidelidade', roles: ['HO'] },
   ],
   admin: [
-    { label: 'Quartos', icon: Building2, href: '/admin/quartos', roles: ['AT', 'SV', 'GE'] },
-    { label: 'Check-in/out', icon: CalendarCheck, href: '/admin/checkin', roles: ['AT', 'SV', 'GE'] },
-    { label: 'Hóspedes', icon: Users, href: '/admin/hospedes', roles: ['AT', 'SV', 'GE'] },
-    { label: 'Cardápio', icon: UtensilsCrossed, href: '/admin/cardapio', roles: ['AT', 'SV', 'GE'] },
-    { label: 'Lançar Consumo', icon: ShoppingCart, href: '/admin/consumo', roles: ['AT', 'SV', 'GE'] },
-    { label: 'Categorias', icon: Tag, href: '/admin/categorias', roles: ['SV', 'GE'] },
-    { label: 'Manutenção', icon: Wrench, href: '/admin/manutencao', roles: ['SV', 'GE'] },
-    { label: 'Funcionários', icon: Users, href: '/admin/funcionarios', roles: ['GE'] },
-    { label: 'Meu Hotel', icon: Building2, href: '/admin/hotel', roles: ['GE'] },
-    { label: 'Tarifas', icon: BarChart3, href: '/admin/tarifas', roles: ['GE'] },
-    { label: 'Relatórios', icon: BarChart3, href: '/admin/relatorios', roles: ['GE'] },
+    { label: 'Quartos', icon: Building2, href: '/app/admin/quartos', roles: ['AT', 'SV', 'GE'] },
+    { label: 'Check-in/out', icon: CalendarCheck, href: '/app/admin/checkin', roles: ['AT', 'SV', 'GE'] },
+    { label: 'Hóspedes', icon: Users, href: '/app/admin/hospedes', roles: ['AT', 'SV', 'GE'] },
+    { label: 'Cardápio', icon: UtensilsCrossed, href: '/app/admin/cardapio', roles: ['AT', 'SV', 'GE'] },
+    { label: 'Lançar Consumo', icon: ShoppingCart, href: '/app/admin/consumo', roles: ['AT', 'SV', 'GE'] },
+    { label: 'Categorias', icon: Tag, href: '/app/admin/categorias', roles: ['SV', 'GE'] },
+    { label: 'Manutenção', icon: Wrench, href: '/app/admin/manutencao', roles: ['SV', 'GE'] },
+    { label: 'Funcionários', icon: Users, href: '/app/admin/funcionarios', roles: ['GE'] },
+    { label: 'Meu Hotel', icon: Building2, href: '/app/admin/hotel', roles: ['GE'] },
+    { label: 'Tarifas', icon: BarChart3, href: '/app/admin/tarifas', roles: ['GE'] },
+    { label: 'Relatórios', icon: BarChart3, href: '/app/admin/relatorios', roles: ['GE'] },
   ],
 }
 
-const BACKEND_READY = ['/admin/funcionarios', '/admin/hospedes', '/admin/hotel', '/admin/categorias', '/admin/quartos', '/admin/tarifas', '/me']
+const BACKEND_READY = ['/app/admin/funcionarios', '/app/admin/hospedes', '/app/admin/hotel', '/app/admin/categorias', '/app/admin/quartos', '/app/admin/tarifas', '/app/me']
 
 interface SidebarProps {
   onLogout: () => void
