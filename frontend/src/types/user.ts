@@ -84,4 +84,5 @@ export interface UserCreateRequest {
   role: Role
   endereco: Endereco
   senha: string
+  is_active?: boolean
 }

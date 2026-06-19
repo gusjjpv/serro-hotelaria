@@ -25,17 +25,17 @@ const statsCards = [
 ]
 
 const menuGrid = [
-  { label: 'Quartos', icon: Building2, href: '/admin/quartos', roles: ['AT', 'SV', 'GE'], ready: false },
-  { label: 'Check-in/out', icon: CalendarCheck, href: '/admin/checkin', roles: ['AT', 'SV', 'GE'], ready: false },
-  { label: 'Hóspedes', icon: Users, href: '/admin/hospedes', roles: ['AT', 'SV', 'GE'], ready: true },
-  { label: 'Funcionários', icon: UserCog, href: '/admin/funcionarios', roles: ['GE'], ready: true },
-  { label: 'Meu Hotel', icon: Building2, href: '/admin/hotel', roles: ['GE'], ready: true },
-  { label: 'Cardápio', icon: UtensilsCrossed, href: '/admin/cardapio', roles: ['AT', 'SV', 'GE'], ready: false },
-  { label: 'Lançar Consumo', icon: ShoppingCart, href: '/admin/consumo', roles: ['AT', 'SV', 'GE'], ready: false },
-  { label: 'Categorias', icon: Tag, href: '/admin/categorias', roles: ['SV', 'GE'], ready: false },
-  { label: 'Manutenção', icon: Wrench, href: '/admin/manutencao', roles: ['SV', 'GE'], ready: false },
-  { label: 'Tarifas', icon: TrendingUp, href: '/admin/tarifas', roles: ['GE'], ready: false },
-  { label: 'Relatórios', icon: BarChart3, href: '/admin/relatorios', roles: ['GE'], ready: false },
+  { label: 'Quartos', icon: Building2, href: '/app/admin/quartos', roles: ['AT', 'SV', 'GE'], ready: true },
+  { label: 'Check-in/out', icon: CalendarCheck, href: '/app/admin/checkin', roles: ['AT', 'SV', 'GE'], ready: false },
+  { label: 'Hóspedes', icon: Users, href: '/app/admin/hospedes', roles: ['AT', 'SV', 'GE'], ready: true },
+  { label: 'Funcionários', icon: UserCog, href: '/app/admin/funcionarios', roles: ['GE'], ready: true },
+  { label: 'Meu Hotel', icon: Building2, href: '/app/admin/hotel', roles: ['GE'], ready: true },
+  { label: 'Cardápio', icon: UtensilsCrossed, href: '/app/admin/cardapio', roles: ['AT', 'SV', 'GE'], ready: false },
+  { label: 'Lançar Consumo', icon: ShoppingCart, href: '/app/admin/consumo', roles: ['AT', 'SV', 'GE'], ready: false },
+  { label: 'Categorias', icon: Tag, href: '/app/admin/categorias', roles: ['SV', 'GE'], ready: true },
+  { label: 'Manutenção', icon: Wrench, href: '/app/admin/manutencao', roles: ['SV', 'GE'], ready: false },
+  { label: 'Tarifas', icon: TrendingUp, href: '/app/admin/tarifas', roles: ['GE'], ready: true },
+  { label: 'Relatórios', icon: BarChart3, href: '/app/admin/relatorios', roles: ['GE'], ready: false },
 ]
 
 export function AdminDashboard() {

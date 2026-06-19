@@ -76,3 +76,48 @@ class QuartoSerializer(serializers.ModelSerializer):
         if value not in StatusQuarto.values:
             raise serializers.ValidationError(f'Status inválido. Opções: {", ".join(StatusQuarto.values)}')
         return value
+
+
+class HotelPublicSerializer(serializers.ModelSerializer):
+    cidade = serializers.CharField(source='endereco.cidade', read_only=True)
+
+    class Meta:
+        model = Hotel
+        fields = ['id', 'nome', 'cidade', 'telefoneContato', 'emailContato']
+
+
+class CategoriaPublicSerializer(serializers.ModelSerializer):
+    quartosDisponiveis = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CategoriaQuarto
+        fields = ['id', 'nome', 'descricao', 'capacidade', 'precoBase', 'quartosDisponiveis']
+
+    def get_quartosDisponiveis(self, obj):
+        return obj.quartos.filter(status=StatusQuarto.DISPONIVEL).count()
+
+
+class HotelPublicDetailSerializer(serializers.ModelSerializer):
+    cidade = serializers.CharField(source='endereco.cidade', read_only=True)
+    enderecoCompleto = serializers.SerializerMethodField()
+    categorias = CategoriaPublicSerializer(many=True, read_only=True)
+    totalQuartos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Hotel
+        fields = [
+            'id', 'nome', 'cidade', 'enderecoCompleto',
+            'telefoneContato', 'emailContato', 'categorias', 'totalQuartos',
+        ]
+
+    def get_enderecoCompleto(self, obj):
+        e = obj.endereco
+        parts = [e.rua, e.numero]
+        if e.complemento:
+            parts.append(e.complemento)
+        parts.append(f"{e.bairro} - {e.cidade}/{e.estado}")
+        parts.append(f"CEP: {e.cep}")
+        return ', '.join(parts)
+
+    def get_totalQuartos(self, obj):
+        return obj.quartos.filter(status=StatusQuarto.DISPONIVEL).count()

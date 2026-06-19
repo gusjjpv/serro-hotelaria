@@ -23,7 +23,7 @@ export function LoginPage() {
 
     try {
       await login(username, password)
-      navigate('/')
+      navigate('/app')
     } catch (err) {
       if (err && typeof err === 'object' && 'response' in err) {
         const resp = (err as { response: Response }).response

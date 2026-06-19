@@ -3,19 +3,21 @@ import { motion } from 'framer-motion'
 import { Card } from '@/features/shared/Card'
 import { formatDate } from '@/lib/utils'
 import * as authService from '@/services/endpoints/auth'
+import * as hotelService from '@/services/endpoints/hotel'
 import type { UserListResponse } from '@/types'
-import { Search, UserCheck, UserX } from 'lucide-react'
+import { Search, UserCheck, UserX, Building2 } from 'lucide-react'
 
 export function HospedesPage() {
   const [guests, setGuests] = useState<UserListResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [hotelName, setHotelName] = useState('')
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await authService.listUsers()
-        setGuests(data.filter(u => u.role === 'HO'))
+        const data = await authService.listHospedes()
+        setGuests(data)
       } catch {
         setGuests([])
       } finally {
@@ -23,6 +25,7 @@ export function HospedesPage() {
       }
     }
     load()
+    hotelService.getHotel().then(h => setHotelName(h.nome)).catch(() => {})
   }, [])
 
   const filtered = guests.filter((u: UserListResponse) =>
@@ -38,8 +41,11 @@ export function HospedesPage() {
       className="space-y-6"
     >
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Hóspedes</h1>
-        <p className="text-muted mt-1">Consulte os hóspedes cadastrados</p>
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <Building2 className="h-6 w-6 text-primary-500" />
+          {hotelName || 'Hotel'}
+        </h1>
+        <p className="text-muted mt-1">Hóspedes — Consulte os hóspedes cadastrados</p>
       </div>
 
       <div className="relative max-w-md">

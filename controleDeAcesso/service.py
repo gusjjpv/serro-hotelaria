@@ -1,7 +1,11 @@
+import logging
+
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Usuario, Endereco, Atendente, Supervisor, Hospede
+
+logger = logging.getLogger(__name__)
 
 
 def criar_usuario(data):
@@ -63,13 +67,16 @@ def gerar_tokens(usuario):
 
 
 def enviar_email_boas_vindas(usuario):
-    send_mail(
-        subject='Bem-vindo ao Serro Hotelaria',
-        message=f'Olá {usuario.first_name},\n\nSeu cadastro foi realizado com sucesso!',
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[usuario.email],
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            subject='Bem-vindo ao Serro Hotelaria',
+            message=f'Olá {usuario.first_name},\n\nSeu cadastro foi realizado com sucesso!',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[usuario.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.warning(f'Falha ao enviar email de boas-vindas para {usuario.email}: {e}')
 
 
 def inativar_usuario(usuario):
