@@ -818,3 +818,23 @@ class ReservaCancelAPITest(BaseAPITest):
         self.auth(self.hospede_token)
         response = self.client.patch(self.url, {}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cancel_reserva_liberar_quarto(self):
+        self.reserva.quarto = self.quarto
+        self.reserva.save()
+        self.quarto.status = StatusQuarto.OCUPADO
+        self.quarto.save()
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.DISPONIVEL)
+
+    @patch('hospedagemInfraestrutura.service.send_mail')
+    def test_cancel_reserva_sends_email(self, mock_send_mail):
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_send_mail.assert_called_once()
+        args = mock_send_mail.call_args
+        self.assertIn(self.reserva.codigo, args.kwargs.get('message', args[1] if len(args) > 1 else ''))

@@ -284,3 +284,13 @@ class ReservaCancelView(generics.UpdateAPIView):
         return get_object_or_404(
             Reserva, pk=self.kwargs['pk'], hospede=user,
         )
+
+    def update(self, request, *args, **kwargs):
+        reserva = self.get_object()
+        serializer = self.get_serializer(reserva, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        from .service import enviar_email_cancelamento_reserva
+        with transaction.atomic():
+            reserva = serializer.save()
+            enviar_email_cancelamento_reserva(reserva)
+        return Response(ReservaSerializer(reserva).data)

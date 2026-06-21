@@ -247,4 +247,7 @@ class ReservaCancelSerializer(serializers.Serializer):
     def save(self, **kwargs):
         self.instance.status = StatusReserva.CANCELADA
         self.instance.save(update_fields=['status', 'dataAtualizacao'])
+        if self.instance.quarto:
+            self.instance.quarto.status = StatusQuarto.DISPONIVEL
+            self.instance.quarto.save(update_fields=['status'])
         return self.instance

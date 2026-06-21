@@ -125,3 +125,23 @@ def enviar_email_confirmacao_reserva(reserva):
         )
     except Exception as e:
         logger.warning(f'Falha ao enviar email de confirmação para {reserva.hospede.email}: {e}')
+
+
+def enviar_email_cancelamento_reserva(reserva):
+    try:
+        send_mail(
+            subject=f'Reserva {reserva.codigo} cancelada - Serro Hotelaria',
+            message=(
+                f'Olá {reserva.hospede.first_name},\n\n'
+                f'Sua reserva foi cancelada com sucesso.\n\n'
+                f'Código: {reserva.codigo}\n'
+                f'Hotel: {reserva.hotel.nome}\n'
+                f'Categoria: {reserva.categoria.nome}\n\n'
+                f'Se precisar de algo, estamos à disposição.'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[reserva.hospede.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.warning(f'Falha ao enviar email de cancelamento para {reserva.hospede.email}: {e}')
