@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/auth/', include('controleDeAcesso.urls')),
     path('api/', include('hospedagemInfraestrutura.urls')),
     path('api/', include('tarifasManutencao.urls')),
+    path('api/', include('financeiro.urls')),
 ]

@@ -320,8 +320,10 @@ class ReservaCheckInView(generics.UpdateAPIView):
         serializer = self.get_serializer(reserva, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         from .service import enviar_email_checkin_reserva
+        from financeiro.service import criar_conta
         with transaction.atomic():
             reserva = serializer.save()
+            criar_conta(reserva)
             enviar_email_checkin_reserva(reserva)
         return Response(ReservaSerializer(reserva).data)
 
@@ -349,8 +351,10 @@ class ReservaCheckInPresencialView(generics.UpdateAPIView):
         serializer = self.get_serializer(reserva, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         from .service import enviar_email_checkin_reserva
+        from financeiro.service import criar_conta
         with transaction.atomic():
             reserva = serializer.save()
+            criar_conta(reserva)
             enviar_email_checkin_reserva(reserva)
         return Response(ReservaSerializer(reserva).data)
 
@@ -378,8 +382,10 @@ class ReservaCheckOutView(generics.UpdateAPIView):
         serializer = self.get_serializer(reserva, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         from .service import enviar_email_checkout_reserva
+        from financeiro.service import fechar_conta
         with transaction.atomic():
             reserva = serializer.save()
+            fechar_conta(reserva)
             enviar_email_checkout_reserva(reserva)
         return Response(ReservaSerializer(reserva).data)
 
