@@ -7,26 +7,12 @@ import { useAuth } from '@/hooks/useAuth'
 import { AuthModal } from '@/features/auth/AuthModal'
 import { Button } from '@/features/shared/Button'
 import { formatCurrency } from '@/lib/utils'
+import { extractApiError } from '@/lib/api-errors'
 import type { HotelPublicDetail, CategoriaDisponivel } from '@/types/hotel'
 import {
   ArrowLeft, Calendar, Users, BedDouble,
   Clock, AlertTriangle, CheckCircle, CreditCard,
 } from 'lucide-react'
-
-async function extractApiError(err: unknown): Promise<string> {
-  if (err && typeof err === 'object' && 'response' in err) {
-    const response = (err as { response: Response }).response
-    try {
-      const body = await response.clone().json() as Record<string, string[]>
-      const msgs = Object.values(body).flat().filter(Boolean)
-      return msgs.length > 0 ? msgs.join(' ') : 'Erro ao criar reserva. Tente novamente.'
-    } catch {
-      return 'Erro ao conectar ao servidor.'
-    }
-  }
-  if (err instanceof Error) return err.message
-  return 'Erro ao criar reserva. Tente novamente.'
-}
 
 export function CheckoutPage() {
   const [searchParams] = useSearchParams()

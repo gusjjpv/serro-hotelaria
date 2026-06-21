@@ -19,9 +19,11 @@ ALLOWED_QUARTO_TRANSITIONS = {
 
 
 class StatusReserva(models.TextChoices):
+    PENDENTE = 'PEND', 'Pendente'
     CONFIRMADA = 'CONF', 'Confirmada'
-    CANCELADA = 'CANC', 'Cancelada'
+    CHECK_IN = 'CHIN', 'Check-in'
     FINALIZADA = 'FINA', 'Finalizada'
+    CANCELADA = 'CANC', 'Cancelada'
 
 
 class Hotel(models.Model):
@@ -101,7 +103,7 @@ class Reserva(models.Model):
     numHospedes = models.PositiveIntegerField()
     valorTotal = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(
-        max_length=4, choices=StatusReserva.choices, default=StatusReserva.CONFIRMADA,
+        max_length=4, choices=StatusReserva.choices, default=StatusReserva.PENDENTE,
     )
     dataReserva = models.DateTimeField(auto_now_add=True)
     dataAtualizacao = models.DateTimeField(auto_now=True)

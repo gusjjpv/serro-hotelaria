@@ -4,6 +4,7 @@ import { Card } from '@/features/shared/Card'
 import { Button } from '@/features/shared/Button'
 import { Input } from '@/features/shared/Input'
 import { formatCurrency, cn } from '@/lib/utils'
+import { parseFieldErrors } from '@/lib/api-errors'
 import * as categoriaService from '@/services/endpoints/categoria'
 import type { CategoriaQuarto, CategoriaQuartoCreateRequest } from '@/types/quarto'
 import {
@@ -21,52 +22,6 @@ const emptyForm: CategoriaQuartoCreateRequest = {
   descricao: '',
   capacidade: 2,
   precoBase: 0,
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function parseFieldErrors(
-  body: unknown,
-  prefix = '',
-): { fieldErrors: Record<string, any>; apiMessage: string } {
-  if (Array.isArray(body)) {
-    return { fieldErrors: {}, apiMessage: body.filter(Boolean).join('. ') || 'Erro ao salvar.' }
-  }
-  if (!isRecord(body)) {
-    return { fieldErrors: {}, apiMessage: 'Erro ao salvar.' }
-  }
-  if ('detail' in body && typeof body.detail === 'string') {
-    return { fieldErrors: {}, apiMessage: body.detail }
-  }
-
-  const fieldErrors: Record<string, any> = {}
-  const topLevelMessages: string[] = []
-
-  for (const [key, value] of Object.entries(body)) {
-    const fieldPath = prefix ? `${prefix}.${key}` : key
-
-    if (Array.isArray(value)) {
-      const msg = value.filter(Boolean).join('. ')
-      if (msg) {
-        if (prefix) {
-          fieldErrors[prefix] ??= {}
-          fieldErrors[prefix][key] = { message: msg }
-        } else {
-          fieldErrors[key] = { message: msg }
-        }
-      }
-    } else if (isRecord(value)) {
-      const nested = parseFieldErrors(value, fieldPath)
-      Object.assign(fieldErrors, nested.fieldErrors)
-      topLevelMessages.push(...nested.apiMessage.split('. ').filter(Boolean))
-    } else {
-      topLevelMessages.push(String(value))
-    }
-  }
-
-  return { fieldErrors, apiMessage: topLevelMessages.join('. ') || 'Erro ao salvar.' }
 }
 
 export function CategoriasPage() {

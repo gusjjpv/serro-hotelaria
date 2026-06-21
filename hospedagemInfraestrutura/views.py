@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -116,7 +117,7 @@ class QuartoStatusUpdateView(generics.UpdateAPIView):
             )
 
         instance.status = new_status
-        instance.status_changed_at = date.today()
+        instance.status_changed_at = timezone.now()
         instance.status_changed_by = self.request.user
         instance.save(update_fields=['status', 'status_changed_at', 'status_changed_by'])
 
