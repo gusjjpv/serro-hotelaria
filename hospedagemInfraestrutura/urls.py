@@ -5,7 +5,9 @@ from .views import (
     CategoriaQuartoListCreateView, CategoriaQuartoDetailView,
     QuartoListCreateView, QuartoDetailView, QuartoDisponivelListView,
     QuartoStatusUpdateView,
-    ReservaListCreateView, ReservaDetailView, ReservaCancelView, ReservaCheckInView,
+    ReservaListCreateView, ReservaDetailView, ReservaCancelView,
+    ReservaCheckInView, ReservaCheckInPresencialView, ReservaCheckOutView,
+    PainelDoDiaView,
 )
 
 urlpatterns = [
@@ -24,4 +26,7 @@ urlpatterns = [
     path('reservas/<int:pk>/', ReservaDetailView.as_view(), name='reserva-detail'),
     path('reservas/<int:pk>/cancelar/', ReservaCancelView.as_view(), name='reserva-cancel'),
     path('reservas/<int:pk>/check-in/', ReservaCheckInView.as_view(), name='reserva-checkin'),
+    path('reservas/<int:pk>/checkin-presencial/', ReservaCheckInPresencialView.as_view(), name='reserva-checkin-presencial'),
+    path('reservas/<int:pk>/checkout/', ReservaCheckOutView.as_view(), name='reserva-checkout'),
+    path('reservas/painel-do-dia/', PainelDoDiaView.as_view(), name='reserva-painel-do-dia'),
 ]

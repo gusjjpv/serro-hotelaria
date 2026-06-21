@@ -474,13 +474,26 @@ class QuartoStatusUpdateTest(BaseAPITest):
         response = self.client.patch(self.url, {'status': 'MANU'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_atendente_ocup_to_anything_denied(self):
+    def test_atendente_ocup_to_limp_allowed(self):
         self.quarto.status = StatusQuarto.OCUPADO
         self.quarto.save()
         self.auth(self.atendente_token)
-        for target in ['DISP', 'LIMP', 'MANU']:
-            response = self.client.patch(self.url, {'status': target}, format='json')
-            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.client.patch(self.url, {'status': 'LIMP'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_atendente_ocup_to_disp_denied(self):
+        self.quarto.status = StatusQuarto.OCUPADO
+        self.quarto.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {'status': 'DISP'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_atendente_ocup_to_manu_denied(self):
+        self.quarto.status = StatusQuarto.OCUPADO
+        self.quarto.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {'status': 'MANU'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_atendente_manu_to_anything_denied(self):
         self.quarto.status = StatusQuarto.MANUTENCAO
@@ -916,3 +929,207 @@ class ReservaCheckInAPITest(BaseAPITest):
         self.auth(self.hospede_token)
         response = self.client.patch(self.url, {}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ReservaCheckInPresencialAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.atendente.hotel = self.hotel
+        self.atendente.save()
+        self.reserva = ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.CONFIRMADA,
+        )
+        self.url = f'/api/reservas/{self.reserva.pk}/checkin-presencial/'
+
+    def test_checkin_presencial_confirmada(self):
+        self.auth(self.atendente_token)
+        data = {'observacoes': 'Hóspede chegou', 'identidadeVerificada': True}
+        response = self.client.patch(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.reserva.refresh_from_db()
+        self.assertEqual(self.reserva.status, StatusReserva.CHECK_IN)
+        self.assertTrue(self.reserva.identidadeVerificada)
+        self.assertEqual(self.reserva.observacoes, 'Hóspede chegou')
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.OCUPADO)
+
+    def test_checkin_presencial_pendente(self):
+        self.reserva.status = StatusReserva.PENDENTE
+        self.reserva.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.reserva.refresh_from_db()
+        self.assertEqual(self.reserva.status, StatusReserva.CHECK_IN)
+
+    def test_checkin_presencial_check_in_denied(self):
+        self.reserva.status = StatusReserva.CHECK_IN
+        self.reserva.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_checkin_presencial_cancelada_denied(self):
+        self.reserva.status = StatusReserva.CANCELADA
+        self.reserva.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_checkin_presencial_no_quarto_denied(self):
+        self.reserva.quarto = None
+        self.reserva.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch('hospedagemInfraestrutura.service.send_mail')
+    def test_checkin_presencial_sends_email(self, mock_send_mail):
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_send_mail.assert_called_once()
+
+    def test_checkin_presencial_unauthenticated(self):
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_checkin_presencial_hospede_can_also_use(self):
+        self.hospede.hotel = self.hotel
+        self.hospede.save()
+        self.hospede_token = str(RefreshToken.for_user(self.hospede).access_token)
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class ReservaCheckOutAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.atendente.hotel = self.hotel
+        self.atendente.save()
+        self.reserva = ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.CHECK_IN,
+        )
+        self.quarto.status = StatusQuarto.OCUPADO
+        self.quarto.save()
+        self.url = f'/api/reservas/{self.reserva.pk}/checkout/'
+
+    def test_checkout_valid(self):
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.reserva.refresh_from_db()
+        self.assertEqual(self.reserva.status, StatusReserva.FINALIZADA)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.LIMPEZA)
+
+    def test_checkout_not_checkin_denied(self):
+        self.reserva.status = StatusReserva.CONFIRMADA
+        self.reserva.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_checkout_finalizada_denied(self):
+        self.reserva.status = StatusReserva.FINALIZADA
+        self.reserva.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_checkout_cancelada_denied(self):
+        self.reserva.status = StatusReserva.CANCELADA
+        self.reserva.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch('hospedagemInfraestrutura.service.send_mail')
+    def test_checkout_sends_email(self, mock_send_mail):
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_send_mail.assert_called_once()
+        args = mock_send_mail.call_args
+        self.assertIn(self.reserva.codigo, args.kwargs.get('message', args[1] if len(args) > 1 else ''))
+
+    def test_checkout_unauthenticated(self):
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_checkout_other_user_denied(self):
+        other = UsuarioFactory.create(role='HO', username='other', cpf='55555555555', telefone='85955555555')
+        other_token = str(RefreshToken.for_user(other).access_token)
+        self.auth(other_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class PainelDoDiaAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.gestor_token = str(RefreshToken.for_user(self.gestor).access_token)
+        self.today = date.today()
+        self.tomorrow = self.today + timedelta(days=1)
+
+    def test_painel_checkins_hoje(self):
+        self.auth(self.gestor_token)
+        ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.CONFIRMADA,
+            dataEntrada=self.today,
+        )
+        response = self.client.get('/api/reservas/painel-do-dia/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['checkins_previstos']), 1)
+
+    def test_painel_checkouts_hoje(self):
+        self.auth(self.gestor_token)
+        q2 = QuartoFactory.create(hotel=self.hotel, categoria=self.categoria, numero='102')
+        ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=q2,
+            hospede=self.hospede, status=StatusReserva.CHECK_IN,
+            dataEntrada=self.today - timedelta(days=3),
+            dataSaida=self.today,
+        )
+        response = self.client.get('/api/reservas/painel-do-dia/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['checkouts_previstos']), 1)
+
+    def test_painel_inclui_amanha(self):
+        self.auth(self.gestor_token)
+        ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.CONFIRMADA,
+            dataEntrada=self.tomorrow,
+        )
+        response = self.client.get('/api/reservas/painel-do-dia/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['checkins_previstos']), 1)
+
+    def test_painel_unauthenticated(self):
+        response = self.client.get('/api/reservas/painel-do-dia/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_painel_supervisor_scoped(self):
+        self.supervisor.hotel = self.hotel
+        self.supervisor.save()
+        self.auth(self.supervisor_token)
+        ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.CONFIRMADA,
+            dataEntrada=self.today,
+        )
+        response = self.client.get('/api/reservas/painel-do-dia/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['checkins_previstos']), 1)
+
+    def test_painel_vazio(self):
+        self.auth(self.gestor_token)
+        response = self.client.get('/api/reservas/painel-do-dia/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['checkins_previstos']), 0)
+        self.assertEqual(len(response.data['checkouts_previstos']), 0)

@@ -19,7 +19,7 @@ ALLOWED_QUARTO_TRANSITIONS = {
 
 ATENDENTE_ALLOWED_TRANSITIONS = {
     StatusQuarto.DISPONIVEL: [StatusQuarto.OCUPADO, StatusQuarto.LIMPEZA],
-    StatusQuarto.OCUPADO: [],
+    StatusQuarto.OCUPADO: [StatusQuarto.LIMPEZA],
     StatusQuarto.LIMPEZA: [StatusQuarto.DISPONIVEL],
     StatusQuarto.MANUTENCAO: [],
 }
@@ -112,6 +112,8 @@ class Reserva(models.Model):
     status = models.CharField(
         max_length=4, choices=StatusReserva.choices, default=StatusReserva.PENDENTE,
     )
+    observacoes = models.TextField(blank=True, default='')
+    identidadeVerificada = models.BooleanField(default=False)
     dataReserva = models.DateTimeField(auto_now_add=True)
     dataAtualizacao = models.DateTimeField(auto_now=True)
 

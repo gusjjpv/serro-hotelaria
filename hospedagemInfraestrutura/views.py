@@ -17,6 +17,7 @@ from .serializers import (
     QuartoStatusSerializer, HotelPublicSerializer, HotelPublicDetailSerializer,
     CategoriaDisponivelSerializer, ReservaSerializer, ReservaCreateSerializer,
     ReservaCancelSerializer, ReservaCheckInSerializer,
+    ReservaCheckInPresencialSerializer, ReservaCheckOutSerializer,
 )
 
 
@@ -323,3 +324,117 @@ class ReservaCheckInView(generics.UpdateAPIView):
             reserva = serializer.save()
             enviar_email_checkin_reserva(reserva)
         return Response(ReservaSerializer(reserva).data)
+
+
+class ReservaCheckInPresencialView(generics.UpdateAPIView):
+    serializer_class = ReservaCheckInPresencialSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+        if user.role in ('GE', 'SV', 'AT'):
+            if user.role == 'GE':
+                return get_object_or_404(
+                    Reserva, pk=self.kwargs['pk'], hotel__gestor=user,
+                )
+            return get_object_or_404(
+                Reserva, pk=self.kwargs['pk'], hotel=user.hotel,
+            )
+        return get_object_or_404(
+            Reserva, pk=self.kwargs['pk'], hospede=user,
+        )
+
+    def update(self, request, *args, **kwargs):
+        reserva = self.get_object()
+        serializer = self.get_serializer(reserva, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        from .service import enviar_email_checkin_reserva
+        with transaction.atomic():
+            reserva = serializer.save()
+            enviar_email_checkin_reserva(reserva)
+        return Response(ReservaSerializer(reserva).data)
+
+
+class ReservaCheckOutView(generics.UpdateAPIView):
+    serializer_class = ReservaCheckOutSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+        if user.role in ('GE', 'SV', 'AT'):
+            if user.role == 'GE':
+                return get_object_or_404(
+                    Reserva, pk=self.kwargs['pk'], hotel__gestor=user,
+                )
+            return get_object_or_404(
+                Reserva, pk=self.kwargs['pk'], hotel=user.hotel,
+            )
+        return get_object_or_404(
+            Reserva, pk=self.kwargs['pk'], hospede=user,
+        )
+
+    def update(self, request, *args, **kwargs):
+        reserva = self.get_object()
+        serializer = self.get_serializer(reserva, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        from .service import enviar_email_checkout_reserva
+        with transaction.atomic():
+            reserva = serializer.save()
+            enviar_email_checkout_reserva(reserva)
+        return Response(ReservaSerializer(reserva).data)
+
+
+class PainelDoDiaView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if user.role == 'GE':
+            hoteis = Hotel.objects.filter(gestor=user)
+        elif user.role in ('SV', 'AT'):
+            hoteis = Hotel.objects.filter(pk=user.hotel_id)
+        else:
+            hoteis = Hotel.objects.filter(reservas__hospede=user).distinct()
+
+        hoje = timezone.now().date()
+        amanha = hoje + timedelta(days=1)
+
+        reservas = Reserva.objects.filter(hotel__in=hoteis).select_related(
+            'hospede', 'hotel', 'categoria', 'quarto',
+        )
+
+        checkins = reservas.filter(
+            dataEntrada__in=[hoje, amanha],
+            status__in=[StatusReserva.PENDENTE, StatusReserva.CONFIRMADA],
+        )
+        checkouts = reservas.filter(
+            dataSaida__in=[hoje, amanha],
+            status=StatusReserva.CHECK_IN,
+        )
+
+        def serialize_checkin(r):
+            return {
+                'id': r.id,
+                'codigo': r.codigo,
+                'hospede_nome': r.hospede.get_full_name() or r.hospede.username,
+                'quarto_numero': r.quarto.numero if r.quarto else None,
+                'categoria': r.categoria.nome,
+                'dataEntrada': r.dataEntrada.isoformat(),
+                'status': r.status,
+            }
+
+        def serialize_checkout(r):
+            return {
+                'id': r.id,
+                'codigo': r.codigo,
+                'hospede_nome': r.hospede.get_full_name() or r.hospede.username,
+                'quarto_numero': r.quarto.numero if r.quarto else None,
+                'categoria': r.categoria.nome,
+                'dataSaida': r.dataSaida.isoformat(),
+                'status': r.status,
+            }
+
+        return Response({
+            'checkins_previstos': [serialize_checkin(r) for r in checkins],
+            'checkouts_previstos': [serialize_checkout(r) for r in checkouts],
+        })

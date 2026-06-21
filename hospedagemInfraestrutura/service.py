@@ -168,3 +168,27 @@ def enviar_email_checkin_reserva(reserva):
         )
     except Exception as e:
         logger.warning(f'Falha ao enviar email de check-in para {reserva.hospede.email}: {e}')
+
+
+def enviar_email_checkout_reserva(reserva):
+    try:
+        send_mail(
+            subject=f'Check-out realizado - Reserva {reserva.codigo} - Serro Hotelaria',
+            message=(
+                f'Olá {reserva.hospede.first_name},\n\n'
+                f'Seu check-out foi realizado com sucesso!\n\n'
+                f'Código: {reserva.codigo}\n'
+                f'Hotel: {reserva.hotel.nome}\n'
+                f'Categoria: {reserva.categoria.nome}\n'
+                f'Quarto: {reserva.quarto.numero}\n'
+                f'Check-in: {reserva.dataEntrada.strftime("%d/%m/%Y")}\n'
+                f'Check-out: {reserva.dataSaida.strftime("%d/%m/%Y")}\n'
+                f'Valor Total: R$ {reserva.valorTotal:.2f}\n\n'
+                f'Obrigado pela preferência! Volte sempre.'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[reserva.hospede.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.warning(f'Falha ao enviar email de check-out para {reserva.hospede.email}: {e}')

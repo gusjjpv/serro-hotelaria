@@ -168,7 +168,8 @@ class ReservaSerializer(serializers.ModelSerializer):
             'id', 'codigo', 'hospede', 'hotel', 'hotel_nome',
             'categoria', 'categoria_nome', 'quarto', 'quarto_numero',
             'dataEntrada', 'dataSaida', 'numHospedes', 'valorTotal',
-            'status', 'status_display', 'dataReserva', 'dataAtualizacao',
+            'status', 'status_display', 'observacoes', 'identidadeVerificada',
+            'dataReserva', 'dataAtualizacao',
         ]
         read_only_fields = [
             'id', 'codigo', 'status', 'dataReserva', 'dataAtualizacao',
@@ -276,5 +277,48 @@ class ReservaCheckInSerializer(serializers.Serializer):
         self.instance.status = StatusReserva.CHECK_IN
         self.instance.save(update_fields=['status', 'dataAtualizacao'])
         self.instance.quarto.status = StatusQuarto.OCUPADO
+        self.instance.quarto.save(update_fields=['status'])
+        return self.instance
+
+
+class ReservaCheckInPresencialSerializer(serializers.Serializer):
+    observacoes = serializers.CharField(required=False, allow_blank=True, default='')
+    identidadeVerificada = serializers.BooleanField(required=False, default=False)
+
+    def validate(self, attrs):
+        reserva = self.instance
+        if reserva.status not in (StatusReserva.PENDENTE, StatusReserva.CONFIRMADA):
+            raise serializers.ValidationError(
+                'Somente reservas PENDENTES ou CONFIRMADAS podem realizar check-in presencial.'
+            )
+        if not reserva.quarto:
+            raise serializers.ValidationError(
+                'Reserva sem quarto atribuído. Não é possível realizar check-in.'
+            )
+        return attrs
+
+    def save(self, **kwargs):
+        self.instance.status = StatusReserva.CHECK_IN
+        self.instance.observacoes = self.validated_data.get('observacoes', '')
+        self.instance.identidadeVerificada = self.validated_data.get('identidadeVerificada', False)
+        self.instance.save(update_fields=['status', 'observacoes', 'identidadeVerificada', 'dataAtualizacao'])
+        self.instance.quarto.status = StatusQuarto.OCUPADO
+        self.instance.quarto.save(update_fields=['status'])
+        return self.instance
+
+
+class ReservaCheckOutSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        reserva = self.instance
+        if reserva.status != StatusReserva.CHECK_IN:
+            raise serializers.ValidationError(
+                'Somente reservas com CHECK_IN podem realizar check-out.'
+            )
+        return attrs
+
+    def save(self, **kwargs):
+        self.instance.status = StatusReserva.FINALIZADA
+        self.instance.save(update_fields=['status', 'dataAtualizacao'])
+        self.instance.quarto.status = StatusQuarto.LIMPEZA
         self.instance.quarto.save(update_fields=['status'])
         return self.instance
