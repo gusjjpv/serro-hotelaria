@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, serializers, status
@@ -443,4 +443,161 @@ class PainelDoDiaView(generics.GenericAPIView):
         return Response({
             'checkins_previstos': [serialize_checkin(r) for r in checkins],
             'checkouts_previstos': [serialize_checkout(r) for r in checkouts],
+        })
+
+
+class DashboardView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def _get_hoteis(self, user):
+        if user.role == 'GE':
+            return Hotel.objects.filter(gestor=user)
+        if user.role in ('SV', 'AT'):
+            return Hotel.objects.filter(pk=user.hotel_id)
+        return Hotel.objects.none()
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if user.role not in ('GE', 'SV', 'AT'):
+            return Response(
+                {'detail': 'Sem permissão para acessar o dashboard.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        hoteis = self._get_hoteis(user)
+        hoje = timezone.now().date()
+
+        quartos_agg = Quarto.objects.filter(hotel__in=hoteis).aggregate(
+            total=Count('id'),
+            ocupados=Count('id', filter=Q(status=StatusQuarto.OCUPADO)),
+            disponiveis=Count('id', filter=Q(status=StatusQuarto.DISPONIVEL)),
+            em_limpeza=Count('id', filter=Q(status=StatusQuarto.LIMPEZA)),
+            manutencao=Count('id', filter=Q(status=StatusQuarto.MANUTENCAO)),
+        )
+
+        reservas_hoje = Reserva.objects.filter(hotel__in=hoteis)
+
+        checkins_pendentes = reservas_hoje.filter(
+            dataEntrada=hoje,
+            status__in=[StatusReserva.PENDENTE, StatusReserva.CONFIRMADA],
+        ).count()
+
+        checkouts_pendentes = reservas_hoje.filter(
+            dataSaida=hoje,
+            status=StatusReserva.CHECK_IN,
+        ).count()
+
+        from financeiro.models import Conta
+        faturamento = Conta.objects.filter(
+            reserva__hotel__in=hoteis,
+            dataAbertura__date=hoje,
+            status__in=['ABER', 'PAGA', 'FECH'],
+        ).aggregate(total=Sum('totalAcumulado'))['total'] or Decimal('0.00')
+
+        reservas_ativas = Reserva.objects.filter(
+            hotel__in=hoteis,
+            status__in=[StatusReserva.CONFIRMADA, StatusReserva.CHECK_IN],
+        ).select_related('hospede', 'quarto', 'categoria').order_by('dataEntrada')[:20]
+
+        return Response({
+            'metricas': {
+                'quartosOcupados': quartos_agg['ocupados'],
+                'quartosTotal': quartos_agg['total'],
+                'quartosDisponiveis': quartos_agg['disponiveis'],
+                'quartosEmLimpeza': quartos_agg['em_limpeza'],
+                'quartosManutencao': quartos_agg['manutencao'],
+                'checkinsPendentes': checkins_pendentes,
+                'checkoutsPendentes': checkouts_pendentes,
+                'faturamentoDoDia': f'{faturamento:.2f}',
+            },
+            'reservasAtivas': [
+                {
+                    'id': r.id,
+                    'codigo': r.codigo,
+                    'hospedeNome': r.hospede.get_full_name() or r.hospede.username,
+                    'quartoNumero': r.quarto.numero if r.quarto else None,
+                    'categoria': r.categoria.nome,
+                    'dataEntrada': r.dataEntrada.isoformat(),
+                    'dataSaida': r.dataSaida.isoformat(),
+                    'status': r.status,
+                    'statusDisplay': r.get_status_display(),
+                }
+                for r in reservas_ativas
+            ],
+        })
+
+
+class RelatorioFaturamentoView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated, IsGestor]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        hoteis = Hotel.objects.filter(gestor=user)
+
+        data_inicio = request.query_params.get('data_inicio')
+        data_fim = request.query_params.get('data_fim')
+
+        if not data_inicio or not data_fim:
+            return Response(
+                {'detail': 'Parâmetros data_inicio e data_fim são obrigatórios.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            data_inicio = date.fromisoformat(data_inicio)
+            data_fim = date.fromisoformat(data_fim)
+        except ValueError:
+            return Response(
+                {'detail': 'Formato de data inválido. Use YYYY-MM-DD.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if data_fim < data_inicio:
+            return Response(
+                {'detail': 'data_fim deve ser igual ou posterior a data_inicio.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reservas = Reserva.objects.filter(
+            hotel__in=hoteis,
+            dataEntrada__gte=data_inicio,
+            dataSaida__lte=data_fim,
+        ).exclude(
+            status=StatusReserva.CANCELADA,
+        ).select_related('hospede', 'quarto', 'categoria')
+
+        resumo = reservas.aggregate(
+            totalReservas=Count('id'),
+            receitaTotal=Sum('valorTotal'),
+        )
+
+        total_diarias = sum(
+            (r.dataSaida - r.dataEntrada).days for r in reservas
+        )
+
+        receita = resumo['receitaTotal'] or Decimal('0.00')
+
+        return Response({
+            'filtro': {
+                'dataInicio': data_inicio.isoformat(),
+                'dataFim': data_fim.isoformat(),
+            },
+            'resumo': {
+                'totalReservas': resumo['totalReservas'],
+                'totalDiarias': total_diarias,
+                'receitaTotal': f'{receita:.2f}',
+            },
+            'reservas': [
+                {
+                    'id': r.id,
+                    'codigo': r.codigo,
+                    'hospedeNome': r.hospede.get_full_name() or r.hospede.username,
+                    'quartoNumero': r.quarto.numero if r.quarto else None,
+                    'categoria': r.categoria.nome,
+                    'dataEntrada': r.dataEntrada.isoformat(),
+                    'dataSaida': r.dataSaida.isoformat(),
+                    'numDias': (r.dataSaida - r.dataEntrada).days,
+                    'valorTotal': f'{r.valorTotal:.2f}',
+                }
+                for r in reservas
+            ],
         })

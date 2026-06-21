@@ -1133,3 +1133,137 @@ class PainelDoDiaAPITest(BaseAPITest):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['checkins_previstos']), 0)
         self.assertEqual(len(response.data['checkouts_previstos']), 0)
+
+
+# ─────────────────────────────────────────
+# Dashboard Tests
+# ─────────────────────────────────────────
+
+class DashboardAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.url = '/api/dashboard/'
+
+    def test_dashboard_gestor(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('metricas', response.data)
+        self.assertIn('reservasAtivas', response.data)
+
+    def test_dashboard_metricas_vazio(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['metricas']['quartosTotal'], 1)
+        self.assertEqual(response.data['metricas']['quartosOcupados'], 0)
+
+    def test_dashboard_quartos_ocupados(self):
+        self.quarto.status = StatusQuarto.OCUPADO
+        self.quarto.save()
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.data['metricas']['quartosOcupados'], 1)
+
+    def test_dashboard_reservas_ativas(self):
+        ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.CHECK_IN,
+        )
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(len(response.data['reservasAtivas']), 1)
+
+    def test_dashboard_checkins_pendentes_hoje(self):
+        ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.CONFIRMADA,
+            dataEntrada=date.today(),
+        )
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.data['metricas']['checkinsPendentes'], 1)
+
+    def test_dashboard_supervisor(self):
+        self.supervisor.hotel = self.hotel
+        self.supervisor.save()
+        self.auth(self.supervisor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_dashboard_unauthenticated(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_dashboard_hospede_forbidden(self):
+        self.hospede_token = str(RefreshToken.for_user(self.hospede).access_token)
+        self.auth(self.hospede_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+# ─────────────────────────────────────────
+# Relatório de Faturamento Tests
+# ─────────────────────────────────────────
+
+class RelatorioFaturamentoAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.url = '/api/relatorios/faturamento/'
+
+    def test_relatorio_gestor(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url, {'data_inicio': '2026-01-01', 'data_fim': '2026-12-31'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('resumo', response.data)
+        self.assertIn('reservas', response.data)
+
+    def test_relatorio_com_reservas(self):
+        ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.FINALIZADA,
+            dataEntrada=date(2026, 6, 1), dataSaida=date(2026, 6, 4),
+            valorTotal=Decimal('300.00'),
+        )
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url, {'data_inicio': '2026-06-01', 'data_fim': '2026-06-30'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['resumo']['totalReservas'], 1)
+        self.assertEqual(response.data['resumo']['totalDiarias'], 3)
+        self.assertEqual(response.data['resumo']['receitaTotal'], '300.00')
+
+    def test_relatorio_exclui_canceladas(self):
+        ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.CANCELADA,
+            dataEntrada=date(2026, 6, 1), dataSaida=date(2026, 6, 3),
+        )
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url, {'data_inicio': '2026-06-01', 'data_fim': '2026-06-30'})
+        self.assertEqual(response.data['resumo']['totalReservas'], 0)
+
+    def test_relatorio_sem_parametros_denied(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_relatorio_data_invalida_denied(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url, {'data_inicio': 'abc', 'data_fim': '2026-06-30'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_relatorio_data_fim_anterior_denied(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url, {'data_inicio': '2026-06-30', 'data_fim': '2026-06-01'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_relatorio_supervisor_forbidden(self):
+        self.supervisor.hotel = self.hotel
+        self.supervisor.save()
+        self.auth(self.supervisor_token)
+        response = self.client.get(self.url, {'data_inicio': '2026-01-01', 'data_fim': '2026-12-31'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_relatorio_unauthenticated(self):
+        response = self.client.get(self.url, {'data_inicio': '2026-01-01', 'data_fim': '2026-12-31'})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
