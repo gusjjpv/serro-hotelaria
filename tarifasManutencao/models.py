@@ -7,6 +7,19 @@ class TipoTemporada(models.TextChoices):
     BAIXA = 'BAIXA', 'Baixa Temporada'
 
 
+class MotivoManutencao(models.TextChoices):
+    PREVENTIVA = 'PREV', 'Preventiva'
+    CORRETIVA = 'CORR', 'Corretiva'
+    LIMPEZA = 'LIMP', 'Limpeza'
+
+
+class StatusManutencao(models.TextChoices):
+    AGENDADA = 'AGEN', 'Agendada'
+    EM_ANDAMENTO = 'EMAN', 'Em Andamento'
+    CONCLUIDA = 'CONC', 'Concluída'
+    CANCELADA = 'CANC', 'Cancelada'
+
+
 class Tarifa(models.Model):
     categoria = models.ForeignKey(
         'hospedagemInfraestrutura.CategoriaQuarto',
@@ -49,3 +62,36 @@ class Tarifa(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class Manutencao(models.Model):
+    quarto = models.ForeignKey(
+        'hospedagemInfraestrutura.Quarto',
+        on_delete=models.CASCADE,
+        related_name='manutencoes',
+    )
+    hotel = models.ForeignKey(
+        'hospedagemInfraestrutura.Hotel',
+        on_delete=models.CASCADE,
+        related_name='manutencoes',
+    )
+    dataInicio = models.DateField()
+    dataFim = models.DateField()
+    motivo = models.CharField(max_length=4, choices=MotivoManutencao.choices)
+    descricao = models.TextField(blank=True, default='')
+    status = models.CharField(
+        max_length=4,
+        choices=StatusManutencao.choices,
+        default=StatusManutencao.EM_ANDAMENTO,
+    )
+    statusAnterior = models.CharField(max_length=4)
+    dataCriacao = models.DateTimeField(auto_now_add=True)
+    dataAtualizacao = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Manutenção'
+        verbose_name_plural = 'Manutenções'
+        ordering = ['-dataCriacao']
+
+    def __str__(self):
+        return f'Manutenção {self.pk} - Quarto {self.quarto.numero} ({self.get_status_display()})'

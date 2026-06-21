@@ -9,8 +9,8 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from controleDeAcesso.models import Endereco, Usuario
-from hospedagemInfraestrutura.models import Hotel, CategoriaQuarto
-from .models import Tarifa, TipoTemporada
+from hospedagemInfraestrutura.models import Hotel, CategoriaQuarto, Quarto, StatusQuarto, Reserva, StatusReserva
+from .models import Tarifa, TipoTemporada, Manutencao, MotivoManutencao, StatusManutencao
 from .admin import TarifaAdmin
 from .serializers import TarifaSerializer
 
@@ -372,3 +372,262 @@ class TarifaAPITest(BaseAPITest):
         self.auth(self.gestor_token)
         response = self.client.get('/api/tarifas/')
         self.assertEqual(len(response.data), 0)
+
+
+# ─────────────────────────────────────────
+# Manutencao Tests
+# ─────────────────────────────────────────
+
+class ManutencaoFactory:
+    @staticmethod
+    def create(quarto=None, hotel=None, **kwargs):
+        if quarto is None:
+            hotel = hotel or HotelFactory.create()
+            categoria = CategoriaQuartoFactory.create(hotel=hotel)
+            quarto = Quarto.objects.create(
+                hotel=hotel, categoria=categoria, numero='999', andar=1,
+            )
+        if hotel is None:
+            hotel = quarto.hotel
+        defaults = {
+            'quarto': quarto,
+            'hotel': hotel,
+            'dataInicio': date.today(),
+            'dataFim': date.today() + timedelta(days=7),
+            'motivo': MotivoManutencao.CORRETIVA,
+            'descricao': 'Teste de manutenção',
+            'status': StatusManutencao.EM_ANDAMENTO,
+            'statusAnterior': StatusQuarto.DISPONIVEL,
+        }
+        defaults.update(kwargs)
+        return Manutencao.objects.create(**defaults)
+
+
+class BaseManutencaoTest(APITestCase):
+    def setUp(self):
+        self.gestor = UsuarioFactory.create(role='GE', username='gestor_man', cpf='11111111111', telefone='85911111111')
+        self.supervisor = UsuarioFactory.create(role='SV', username='supervisor_man', cpf='22222222222', telefone='85922222222')
+        self.atendente = UsuarioFactory.create(role='AT', username='atendente_man', cpf='33333333333', telefone='85933333333')
+
+        self.hotel = HotelFactory.create(gestor=self.gestor)
+        self.categoria = CategoriaQuartoFactory.create(hotel=self.hotel, nome='Standard', capacidade=2)
+        self.quarto = Quarto.objects.create(
+            hotel=self.hotel, categoria=self.categoria, numero='101', andar=1,
+        )
+
+        self.supervisor.hotel = self.hotel
+        self.supervisor.save()
+        self.atendente.hotel = self.hotel
+        self.atendente.save()
+
+        self.gestor_token = str(RefreshToken.for_user(self.gestor).access_token)
+        self.supervisor_token = str(RefreshToken.for_user(self.supervisor).access_token)
+        self.atendente_token = str(RefreshToken.for_user(self.atendente).access_token)
+
+    def auth(self, token):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+
+
+class ManutencaoCreateTest(BaseManutencaoTest):
+    def setUp(self):
+        super().setUp()
+        self.url = '/api/manutencoes/'
+
+    def test_create_manutencao_gestor(self):
+        self.auth(self.gestor_token)
+        data = {
+            'quarto': self.quarto.pk,
+            'hotel': self.hotel.pk,
+            'dataInicio': date.today().isoformat(),
+            'dataFim': (date.today() + timedelta(days=7)).isoformat(),
+            'motivo': MotivoManutencao.CORRETIVA,
+            'descricao': 'Vazamento no banheiro',
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.MANUTENCAO)
+
+    def test_create_manutencao_supervisor(self):
+        self.auth(self.supervisor_token)
+        data = {
+            'quarto': self.quarto.pk,
+            'hotel': self.hotel.pk,
+            'dataInicio': date.today().isoformat(),
+            'dataFim': (date.today() + timedelta(days=3)).isoformat(),
+            'motivo': MotivoManutencao.LIMPEZA,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_manutencao_atendente_denied(self):
+        self.auth(self.atendente_token)
+        data = {
+            'quarto': self.quarto.pk,
+            'hotel': self.hotel.pk,
+            'dataInicio': date.today().isoformat(),
+            'dataFim': (date.today() + timedelta(days=5)).isoformat(),
+            'motivo': MotivoManutencao.PREVENTIVA,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_create_manutencao_quarto_ocupado_denied(self):
+        from controleDeAcesso.tests import UsuarioFactory as UF
+        hospede = UF.create(role='HO', username='hosp_man', cpf='44444444444', telefone='85944444444')
+        Reserva.objects.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=hospede, dataEntrada=date.today(), dataSaida=date.today() + timedelta(days=3),
+            numHospedes=2, valorTotal=200, status=StatusReserva.CHECK_IN,
+        )
+        self.quarto.status = StatusQuarto.OCUPADO
+        self.quarto.save()
+        self.auth(self.gestor_token)
+        data = {
+            'quarto': self.quarto.pk,
+            'hotel': self.hotel.pk,
+            'dataInicio': date.today().isoformat(),
+            'dataFim': (date.today() + timedelta(days=5)).isoformat(),
+            'motivo': MotivoManutencao.CORRETIVA,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_manutencao_sobreposta_denied(self):
+        ManutencaoFactory.create(quarto=self.quarto, hotel=self.hotel)
+        self.auth(self.gestor_token)
+        data = {
+            'quarto': self.quarto.pk,
+            'hotel': self.hotel.pk,
+            'dataInicio': date.today().isoformat(),
+            'dataFim': (date.today() + timedelta(days=3)).isoformat(),
+            'motivo': MotivoManutencao.PREVENTIVA,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_manutencao_data_fim_anterior_denied(self):
+        self.auth(self.gestor_token)
+        data = {
+            'quarto': self.quarto.pk,
+            'hotel': self.hotel.pk,
+            'dataInicio': (date.today() + timedelta(days=5)).isoformat(),
+            'dataFim': date.today().isoformat(),
+            'motivo': MotivoManutencao.CORRETIVA,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_manutencao_salva_status_anterior(self):
+        self.quarto.status = StatusQuarto.LIMPEZA
+        self.quarto.save()
+        self.auth(self.gestor_token)
+        data = {
+            'quarto': self.quarto.pk,
+            'hotel': self.hotel.pk,
+            'dataInicio': date.today().isoformat(),
+            'dataFim': (date.today() + timedelta(days=5)).isoformat(),
+            'motivo': MotivoManutencao.CORRETIVA,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        manut = Manutencao.objects.get(pk=response.data['id'])
+        self.assertEqual(manut.statusAnterior, StatusQuarto.LIMPEZA)
+
+    def test_list_manutencoes(self):
+        ManutencaoFactory.create(quarto=self.quarto, hotel=self.hotel)
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_list_manutencoes_unauthenticated(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ManutencaoFinalizeTest(BaseManutencaoTest):
+    def setUp(self):
+        super().setUp()
+        self.manutencao = ManutencaoFactory.create(quarto=self.quarto, hotel=self.hotel)
+        self.url = f'/api/manutencoes/{self.manutencao.pk}/finalizar/'
+
+    def test_finalize_manutencao(self):
+        self.auth(self.gestor_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.manutencao.refresh_from_db()
+        self.assertEqual(self.manutencao.status, StatusManutencao.CONCLUIDA)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.DISPONIVEL)
+
+    def test_finalize_restores_previous_status(self):
+        self.quarto.status = StatusQuarto.LIMPEZA
+        self.quarto.save()
+        self.manutencao.statusAnterior = StatusQuarto.LIMPEZA
+        self.manutencao.save()
+        self.auth(self.gestor_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.LIMPEZA)
+
+    def test_finalize_concluida_denied(self):
+        self.manutencao.status = StatusManutencao.CONCLUIDA
+        self.manutencao.save()
+        self.auth(self.gestor_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_finalize_cancelada_denied(self):
+        self.manutencao.status = StatusManutencao.CANCELADA
+        self.manutencao.save()
+        self.auth(self.gestor_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ManutencaoCancelTest(BaseManutencaoTest):
+    def setUp(self):
+        super().setUp()
+        self.manutencao = ManutencaoFactory.create(quarto=self.quarto, hotel=self.hotel)
+        self.url = f'/api/manutencoes/{self.manutencao.pk}/cancelar/'
+
+    def test_cancel_manutencao(self):
+        self.auth(self.gestor_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.manutencao.refresh_from_db()
+        self.assertEqual(self.manutencao.status, StatusManutencao.CANCELADA)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.DISPONIVEL)
+
+    def test_cancel_concluida_denied(self):
+        self.manutencao.status = StatusManutencao.CONCLUIDA
+        self.manutencao.save()
+        self.auth(self.gestor_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cancel_supervisor(self):
+        self.auth(self.supervisor_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class ManutencaoDetailTest(BaseManutencaoTest):
+    def setUp(self):
+        super().setUp()
+        self.manutencao = ManutencaoFactory.create(quarto=self.quarto, hotel=self.hotel)
+        self.url = f'/api/manutencoes/{self.manutencao.pk}/'
+
+    def test_detail_gestor(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['quarto_numero'], '101')
+
+    def test_detail_supervisor(self):
+        self.auth(self.supervisor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
