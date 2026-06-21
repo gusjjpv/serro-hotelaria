@@ -58,6 +58,53 @@ export function TarifasPage() {
   const [form, setForm] = useState<TarifaCreateRequest>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, any>>({})
+
+  function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+  }
+
+  function parseFieldErrors(
+    body: unknown,
+    prefix = '',
+  ): { fieldErrors: Record<string, any>; apiMessage: string } {
+    if (Array.isArray(body)) {
+      return { fieldErrors: {}, apiMessage: body.filter(Boolean).join('. ') || 'Erro ao salvar.' }
+    }
+    if (!isRecord(body)) {
+      return { fieldErrors: {}, apiMessage: 'Erro ao salvar.' }
+    }
+    if ('detail' in body && typeof body.detail === 'string') {
+      return { fieldErrors: {}, apiMessage: body.detail }
+    }
+
+    const fieldErrors: Record<string, any> = {}
+    const topLevelMessages: string[] = []
+
+    for (const [key, value] of Object.entries(body)) {
+      const fieldPath = prefix ? `${prefix}.${key}` : key
+
+      if (Array.isArray(value)) {
+        const msg = value.filter(Boolean).join('. ')
+        if (msg) {
+          if (prefix) {
+            fieldErrors[prefix] ??= {}
+            fieldErrors[prefix][key] = { message: msg }
+          } else {
+            fieldErrors[key] = { message: msg }
+          }
+        }
+      } else if (isRecord(value)) {
+        const nested = parseFieldErrors(value, fieldPath)
+        Object.assign(fieldErrors, nested.fieldErrors)
+        topLevelMessages.push(...nested.apiMessage.split('. ').filter(Boolean))
+      } else {
+        topLevelMessages.push(String(value))
+      }
+    }
+
+    return { fieldErrors, apiMessage: topLevelMessages.join('. ') || 'Erro ao salvar.' }
+  }
 
   const loadData = async () => {
     try {
@@ -125,6 +172,7 @@ export function TarifasPage() {
     }
     setSaving(true)
     setError('')
+    setFieldErrors({})
     try {
       if (editingId) {
         await tarifaService.updateTarifa(editingId, form)
@@ -134,7 +182,21 @@ export function TarifasPage() {
       setShowModal(false)
       loadData()
     } catch (err) {
-      setError(await extractApiError(err))
+      if (err && typeof err === 'object' && 'response' in err) {
+        const response = (err as { response: Response }).response
+        try {
+          const body = await response.clone().json()
+          const parsed = parseFieldErrors(body)
+          setFieldErrors(parsed.fieldErrors)
+          setError(parsed.apiMessage)
+        } catch {
+          setError('Erro ao conectar ao servidor.')
+        }
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Erro ao conectar ao servidor.')
+      }
     } finally {
       setSaving(false)
     }
@@ -306,6 +368,7 @@ export function TarifasPage() {
                     options={categorias.map(c => ({ value: String(c.id), label: c.nome }))}
                     value={form.categoria ? String(form.categoria) : ''}
                     onChange={e => setForm({...form, categoria: Number(e.target.value)})}
+                    error={fieldErrors?.categoria?.message}
                   />
 
                   <Input
@@ -316,6 +379,7 @@ export function TarifasPage() {
                     placeholder="0.00"
                     value={form.valorDiaria || ''}
                     onChange={e => setForm({...form, valorDiaria: parseFloat(e.target.value) || 0})}
+                    error={fieldErrors?.valorDiaria?.message}
                   />
 
                   <div className="grid grid-cols-2 gap-4">
@@ -324,12 +388,14 @@ export function TarifasPage() {
                       type="date"
                       value={form.dataInicio}
                       onChange={e => setForm({...form, dataInicio: e.target.value})}
+                      error={fieldErrors?.dataInicio?.message}
                     />
                     <Input
                       label="Data Fim"
                       type="date"
                       value={form.dataFim}
                       onChange={e => setForm({...form, dataFim: e.target.value})}
+                      error={fieldErrors?.dataFim?.message}
                     />
                   </div>
 
@@ -338,6 +404,7 @@ export function TarifasPage() {
                     options={temporadaOptions}
                     value={form.tipoTemporada}
                     onChange={e => setForm({...form, tipoTemporada: e.target.value as TipoTemporada})}
+                    error={fieldErrors?.tipoTemporada?.message}
                   />
 
                   {error && (

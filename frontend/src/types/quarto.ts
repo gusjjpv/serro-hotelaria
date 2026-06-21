@@ -41,6 +41,9 @@ export interface Quarto {
   categoria_nome?: string
   status: StatusQuarto
   status_display: string
+  status_changed_at?: string
+  status_changed_by?: number | null
+  status_changed_by_name?: string | null
   dataCriacao: string
   dataAtualizacao: string
 }

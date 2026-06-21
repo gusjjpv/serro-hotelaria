@@ -37,6 +37,52 @@ const emptyForm: UserCreateRequest = {
   endereco: { rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', cep: '' },
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseFieldErrors(
+  body: unknown,
+  prefix = '',
+): { fieldErrors: Record<string, any>; apiMessage: string } {
+  if (Array.isArray(body)) {
+    return { fieldErrors: {}, apiMessage: body.filter(Boolean).join('. ') || 'Erro ao salvar.' }
+  }
+  if (!isRecord(body)) {
+    return { fieldErrors: {}, apiMessage: 'Erro ao salvar.' }
+  }
+  if ('detail' in body && typeof body.detail === 'string') {
+    return { fieldErrors: {}, apiMessage: body.detail }
+  }
+
+  const fieldErrors: Record<string, any> = {}
+  const topLevelMessages: string[] = []
+
+  for (const [key, value] of Object.entries(body)) {
+    const fieldPath = prefix ? `${prefix}.${key}` : key
+
+    if (Array.isArray(value)) {
+      const msg = value.filter(Boolean).join('. ')
+      if (msg) {
+        if (prefix) {
+          fieldErrors[prefix] ??= {}
+          fieldErrors[prefix][key] = { message: msg }
+        } else {
+          fieldErrors[key] = { message: msg }
+        }
+      }
+    } else if (isRecord(value)) {
+      const nested = parseFieldErrors(value, fieldPath)
+      Object.assign(fieldErrors, nested.fieldErrors)
+      topLevelMessages.push(...nested.apiMessage.split('. ').filter(Boolean))
+    } else {
+      topLevelMessages.push(String(value))
+    }
+  }
+
+  return { fieldErrors, apiMessage: topLevelMessages.join('. ') || 'Erro ao salvar.' }
+}
+
 async function extractApiError(err: unknown): Promise<string> {
   if (err && typeof err === 'object' && 'response' in err) {
     const response = (err as { response: Response }).response
@@ -59,6 +105,7 @@ export function FuncionariosPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState<UserCreateRequest>(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, any>>({})
   const [error, setError] = useState('')
   const [hotelName, setHotelName] = useState('')
 
@@ -90,11 +137,13 @@ export function FuncionariosPage() {
     setForm(emptyForm)
     setEditingId(null)
     setError('')
+    setFieldErrors({})
     setShowModal(true)
   }
 
   const openEdit = async (id: number) => {
     setError('')
+    setFieldErrors({})
     try {
       const user = await authService.getUser(id)
       setForm({
@@ -119,6 +168,7 @@ export function FuncionariosPage() {
   }
 
   const handleSave = async () => {
+    setFieldErrors({})
     setSaving(true)
     setError('')
     try {
@@ -135,7 +185,21 @@ export function FuncionariosPage() {
       setShowModal(false)
       loadUsers()
     } catch (err) {
-      setError(await extractApiError(err))
+      if (err && typeof err === 'object' && 'response' in err) {
+        const response = (err as { response: Response }).response
+        try {
+          const body = await response.clone().json()
+          const { fieldErrors, apiMessage } = parseFieldErrors(body)
+          setFieldErrors(fieldErrors)
+          setError(apiMessage)
+        } catch {
+          setError('Erro ao conectar ao servidor.')
+        }
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Erro ao conectar ao servidor.')
+      }
     } finally {
       setSaving(false)
     }
@@ -326,37 +390,47 @@ export function FuncionariosPage() {
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="Nome" placeholder="Nome" value={form.first_name}
-                      onChange={e => setForm({...form, first_name: e.target.value})} />
+                      error={fieldErrors.first_name?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, first_name: undefined}); setForm({...form, first_name: e.target.value}) }} />
                     <Input label="Sobrenome" placeholder="Sobrenome" value={form.last_name}
-                      onChange={e => setForm({...form, last_name: e.target.value})} />
+                      error={fieldErrors.last_name?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, last_name: undefined}); setForm({...form, last_name: e.target.value}) }} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="E-mail" type="email" placeholder="email@exemplo.com" value={form.email}
-                      onChange={e => setForm({...form, email: e.target.value})} />
+                      error={fieldErrors.email?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, email: undefined}); setForm({...form, email: e.target.value}) }} />
                     <Input label="Username" placeholder="username" value={form.username}
-                      onChange={e => setForm({...form, username: e.target.value})} />
+                      error={fieldErrors.username?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, username: undefined}); setForm({...form, username: e.target.value}) }} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="CPF" placeholder="000.000.000-00" value={form.cpf}
-                      onChange={e => setForm({...form, cpf: e.target.value})} />
+                      error={fieldErrors.cpf?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, cpf: undefined}); setForm({...form, cpf: e.target.value}) }} />
                     <Input label="Telefone" placeholder="(00) 00000-0000" value={form.telefone}
-                      onChange={e => setForm({...form, telefone: e.target.value})} />
+                      error={fieldErrors.telefone?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, telefone: undefined}); setForm({...form, telefone: e.target.value}) }} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="Data de Nascimento" type="date" value={form.dataNascimento}
-                      onChange={e => setForm({...form, dataNascimento: e.target.value})} />
+                      error={fieldErrors.dataNascimento?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, dataNascimento: undefined}); setForm({...form, dataNascimento: e.target.value}) }} />
                     <Select label="Gênero" placeholder="Selecione" options={generoOptions} value={form.genero}
-                      onChange={e => setForm({...form, genero: e.target.value})} />
+                      error={fieldErrors.genero?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, genero: undefined}); setForm({...form, genero: e.target.value}) }} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <Select label="Cargo" options={roleOptions} value={form.role}
-                      onChange={e => setForm({...form, role: e.target.value as Role})} />
+                      error={fieldErrors.role?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, role: undefined}); setForm({...form, role: e.target.value as Role}) }} />
                     <Input label="Senha" type="password" placeholder={editingId ? "Deixe em branco para manter" : "Mínimo 8 caracteres"} value={form.senha}
-                      onChange={e => setForm({...form, senha: e.target.value})} />
+                      error={fieldErrors.senha?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, senha: undefined}); setForm({...form, senha: e.target.value}) }} />
                   </div>
 
                   {editingId && (
@@ -388,27 +462,34 @@ export function FuncionariosPage() {
 
                   <div className="grid grid-cols-[1fr_80px] gap-4">
                     <Input label="Rua" placeholder="Nome da rua" value={form.endereco.rua}
-                      onChange={e => setForm({...form, endereco: {...form.endereco, rua: e.target.value}})} />
+                      error={fieldErrors.endereco?.rua?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, endereco: {...fieldErrors.endereco, rua: undefined}}); setForm({...form, endereco: {...form.endereco, rua: e.target.value}}) }} />
                     <Input label="Nº" placeholder="000" value={form.endereco.numero}
-                      onChange={e => setForm({...form, endereco: {...form.endereco, numero: e.target.value}})} />
+                      error={fieldErrors.endereco?.numero?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, endereco: {...fieldErrors.endereco, numero: undefined}}); setForm({...form, endereco: {...form.endereco, numero: e.target.value}}) }} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="Complemento" placeholder="Apto, Bloco (opcional)" value={form.endereco.complemento}
-                      onChange={e => setForm({...form, endereco: {...form.endereco, complemento: e.target.value}})} />
+                      error={fieldErrors.endereco?.complemento?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, endereco: {...fieldErrors.endereco, complemento: undefined}}); setForm({...form, endereco: {...form.endereco, complemento: e.target.value}}) }} />
                     <Input label="Bairro" placeholder="Seu bairro" value={form.endereco.bairro}
-                      onChange={e => setForm({...form, endereco: {...form.endereco, bairro: e.target.value}})} />
+                      error={fieldErrors.endereco?.bairro?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, endereco: {...fieldErrors.endereco, bairro: undefined}}); setForm({...form, endereco: {...form.endereco, bairro: e.target.value}}) }} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="Cidade" placeholder="Sua cidade" value={form.endereco.cidade}
-                      onChange={e => setForm({...form, endereco: {...form.endereco, cidade: e.target.value}})} />
+                      error={fieldErrors.endereco?.cidade?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, endereco: {...fieldErrors.endereco, cidade: undefined}}); setForm({...form, endereco: {...form.endereco, cidade: e.target.value}}) }} />
                     <Select label="Estado" placeholder="Selecione" options={estadoOptions} value={form.endereco.estado}
-                      onChange={e => setForm({...form, endereco: {...form.endereco, estado: e.target.value}})} />
+                      error={fieldErrors.endereco?.estado?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, endereco: {...fieldErrors.endereco, estado: undefined}}); setForm({...form, endereco: {...form.endereco, estado: e.target.value}}) }} />
                   </div>
 
                   <Input label="CEP" placeholder="00000-000" value={form.endereco.cep}
-                    onChange={e => setForm({...form, endereco: {...form.endereco, cep: e.target.value}})} />
+                    error={fieldErrors.endereco?.cep?.message}
+                    onChange={e => { setFieldErrors({...fieldErrors, endereco: {...fieldErrors.endereco, cep: undefined}}); setForm({...form, endereco: {...form.endereco, cep: e.target.value}}) }} />
 
                   {error && (
                     <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>

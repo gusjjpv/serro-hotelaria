@@ -23,18 +23,50 @@ const emptyForm: CategoriaQuartoCreateRequest = {
   precoBase: 0,
 }
 
-async function extractApiError(err: unknown): Promise<string> {
-  if (err && typeof err === 'object' && 'response' in err) {
-    const response = (err as { response: Response }).response
-    try {
-      const body = await response.clone().json() as Record<string, string[]>
-      return Object.values(body).flat().join(' ')
-    } catch {
-      return 'Erro ao conectar ao servidor.'
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseFieldErrors(
+  body: unknown,
+  prefix = '',
+): { fieldErrors: Record<string, any>; apiMessage: string } {
+  if (Array.isArray(body)) {
+    return { fieldErrors: {}, apiMessage: body.filter(Boolean).join('. ') || 'Erro ao salvar.' }
+  }
+  if (!isRecord(body)) {
+    return { fieldErrors: {}, apiMessage: 'Erro ao salvar.' }
+  }
+  if ('detail' in body && typeof body.detail === 'string') {
+    return { fieldErrors: {}, apiMessage: body.detail }
+  }
+
+  const fieldErrors: Record<string, any> = {}
+  const topLevelMessages: string[] = []
+
+  for (const [key, value] of Object.entries(body)) {
+    const fieldPath = prefix ? `${prefix}.${key}` : key
+
+    if (Array.isArray(value)) {
+      const msg = value.filter(Boolean).join('. ')
+      if (msg) {
+        if (prefix) {
+          fieldErrors[prefix] ??= {}
+          fieldErrors[prefix][key] = { message: msg }
+        } else {
+          fieldErrors[key] = { message: msg }
+        }
+      }
+    } else if (isRecord(value)) {
+      const nested = parseFieldErrors(value, fieldPath)
+      Object.assign(fieldErrors, nested.fieldErrors)
+      topLevelMessages.push(...nested.apiMessage.split('. ').filter(Boolean))
+    } else {
+      topLevelMessages.push(String(value))
     }
   }
-  if (err instanceof Error) return err.message
-  return 'Erro ao conectar ao servidor.'
+
+  return { fieldErrors, apiMessage: topLevelMessages.join('. ') || 'Erro ao salvar.' }
 }
 
 export function CategoriasPage() {
@@ -46,6 +78,7 @@ export function CategoriasPage() {
   const [form, setForm] = useState<CategoriaQuartoCreateRequest>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, any>>({})
 
   const loadCategorias = async () => {
     try {
@@ -70,6 +103,7 @@ export function CategoriasPage() {
     setForm(emptyForm)
     setEditingId(null)
     setError('')
+    setFieldErrors({})
     setShowModal(true)
   }
 
@@ -82,6 +116,7 @@ export function CategoriasPage() {
     })
     setEditingId(cat.id)
     setError('')
+    setFieldErrors({})
     setShowModal(true)
   }
 
@@ -92,6 +127,7 @@ export function CategoriasPage() {
     }
     setSaving(true)
     setError('')
+    setFieldErrors({})
     try {
       if (editingId) {
         await categoriaService.updateCategoria(editingId, form)
@@ -101,7 +137,21 @@ export function CategoriasPage() {
       setShowModal(false)
       loadCategorias()
     } catch (err) {
-      setError(await extractApiError(err))
+      if (err && typeof err === 'object' && 'response' in err) {
+        const response = (err as { response: Response }).response
+        try {
+          const body = await response.clone().json()
+          const parsed = parseFieldErrors(body)
+          setFieldErrors(parsed.fieldErrors)
+          setError(parsed.apiMessage)
+        } catch {
+          setError('Erro ao conectar ao servidor.')
+        }
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Erro ao conectar ao servidor.')
+      }
     } finally {
       setSaving(false)
     }
@@ -113,7 +163,15 @@ export function CategoriasPage() {
       await categoriaService.deleteCategoria(id)
       loadCategorias()
     } catch (err) {
-      setError(await extractApiError(err))
+      let msg = 'Erro ao excluir categoria.'
+      if (err && typeof err === 'object' && 'response' in err) {
+        const response = (err as { response: Response }).response
+        try {
+          const body = await response.clone().json() as Record<string, string[]>
+          msg = Object.values(body).flat().join(' ')
+        } catch {}
+      }
+      setError(msg)
     }
   }
 
@@ -259,17 +317,41 @@ export function CategoriasPage() {
                 </div>
 
                 <div className="p-6 space-y-4">
-                  <Input label="Nome" placeholder="Ex: Standard, Luxo, Suíte" value={form.nome}
-                    onChange={e => setForm({...form, nome: e.target.value})} />
+                  <Input
+                    label="Nome"
+                    placeholder="Ex: Standard, Luxo, Suíte"
+                    value={form.nome}
+                    onChange={e => setForm({...form, nome: e.target.value})}
+                    error={fieldErrors?.nome?.message}
+                  />
 
-                  <Input label="Descrição" placeholder="Descrição da categoria (opcional)" value={form.descricao}
-                    onChange={e => setForm({...form, descricao: e.target.value})} />
+                  <Input
+                    label="Descrição"
+                    placeholder="Descrição da categoria (opcional)"
+                    value={form.descricao}
+                    onChange={e => setForm({...form, descricao: e.target.value})}
+                  />
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Input label="Capacidade" type="number" min={1} placeholder="2" value={form.capacidade}
-                      onChange={e => setForm({...form, capacidade: parseInt(e.target.value) || 1})} />
-                    <Input label="Preço Base (R$)" type="number" min={0} step={0.01} placeholder="0.00" value={form.precoBase}
-                      onChange={e => setForm({...form, precoBase: parseFloat(e.target.value) || 0})} />
+                    <Input
+                      label="Capacidade"
+                      type="number"
+                      min={1}
+                      placeholder="2"
+                      value={form.capacidade}
+                      onChange={e => setForm({...form, capacidade: parseInt(e.target.value) || 1})}
+                      error={fieldErrors?.capacidade?.message}
+                    />
+                    <Input
+                      label="Preço Base (R$)"
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="0.00"
+                      value={form.precoBase}
+                      onChange={e => setForm({...form, precoBase: parseFloat(e.target.value) || 0})}
+                      error={fieldErrors?.precoBase?.message}
+                    />
                   </div>
 
                   {error && (

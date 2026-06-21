@@ -4,7 +4,7 @@ import { Card } from '@/features/shared/Card'
 import { Button } from '@/features/shared/Button'
 import { Input } from '@/features/shared/Input'
 import { Select } from '@/features/shared/Select'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import * as quartoService from '@/services/endpoints/quarto'
 import * as categoriaService from '@/services/endpoints/categoria'
 import type { Quarto, QuartoCreateRequest, CategoriaQuarto, StatusQuarto } from '@/types/quarto'
@@ -17,6 +17,8 @@ import {
   X,
   Check,
   Building2,
+  User,
+  Clock,
 } from 'lucide-react'
 
 const statusOptions = [
@@ -31,6 +33,52 @@ const emptyForm: QuartoCreateRequest = {
   andar: 1,
   categoria: 0,
   status: 'DISP',
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseFieldErrors(
+  body: unknown,
+  prefix = '',
+): { fieldErrors: Record<string, any>; apiMessage: string } {
+  if (Array.isArray(body)) {
+    return { fieldErrors: {}, apiMessage: body.filter(Boolean).join('. ') || 'Erro ao salvar.' }
+  }
+  if (!isRecord(body)) {
+    return { fieldErrors: {}, apiMessage: 'Erro ao salvar.' }
+  }
+  if ('detail' in body && typeof body.detail === 'string') {
+    return { fieldErrors: {}, apiMessage: body.detail }
+  }
+
+  const fieldErrors: Record<string, any> = {}
+  const topLevelMessages: string[] = []
+
+  for (const [key, value] of Object.entries(body)) {
+    const fieldPath = prefix ? `${prefix}.${key}` : key
+
+    if (Array.isArray(value)) {
+      const msg = value.filter(Boolean).join('. ')
+      if (msg) {
+        if (prefix) {
+          fieldErrors[prefix] ??= {}
+          fieldErrors[prefix][key] = { message: msg }
+        } else {
+          fieldErrors[key] = { message: msg }
+        }
+      }
+    } else if (isRecord(value)) {
+      const nested = parseFieldErrors(value, fieldPath)
+      Object.assign(fieldErrors, nested.fieldErrors)
+      topLevelMessages.push(...nested.apiMessage.split('. ').filter(Boolean))
+    } else {
+      topLevelMessages.push(String(value))
+    }
+  }
+
+  return { fieldErrors, apiMessage: topLevelMessages.join('. ') || 'Erro ao salvar.' }
 }
 
 async function extractApiError(err: unknown): Promise<string> {
@@ -57,7 +105,9 @@ export function QuartosPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState<QuartoCreateRequest>(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, any>>({})
   const [error, setError] = useState('')
+  const [updatingStatus, setUpdatingStatus] = useState<Record<number, boolean>>({})
 
   const loadData = async () => {
     try {
@@ -87,10 +137,27 @@ export function QuartosPage() {
     return categorias.find(c => c.id === id)?.nome || '—'
   }
 
+  const handleStatusChange = async (quartoId: number, newStatus: StatusQuarto) => {
+    setUpdatingStatus(prev => ({ ...prev, [quartoId]: true }))
+    setError('')
+    try {
+      await quartoService.updateQuartoStatus(quartoId, newStatus)
+      setQuartos(prev => prev.map(q =>
+        q.id === quartoId ? { ...q, status: newStatus, status_display: StatusQuartoLabels[newStatus] } : q
+      ))
+    } catch (err) {
+      const msg = await extractApiError(err)
+      setError(msg)
+    } finally {
+      setUpdatingStatus(prev => ({ ...prev, [quartoId]: false }))
+    }
+  }
+
   const openCreate = () => {
     setForm(emptyForm)
     setEditingId(null)
     setError('')
+    setFieldErrors({})
     setShowModal(true)
   }
 
@@ -103,16 +170,18 @@ export function QuartosPage() {
     })
     setEditingId(q.id)
     setError('')
+    setFieldErrors({})
     setShowModal(true)
   }
 
   const handleSave = async () => {
+    setFieldErrors({})
     if (!form.numero.trim()) {
-      setError('Número é obrigatório.')
+      setFieldErrors({ numero: { message: 'Número é obrigatório.' } })
       return
     }
     if (!form.categoria) {
-      setError('Selecione uma categoria.')
+      setFieldErrors({ categoria: { message: 'Selecione uma categoria.' } })
       return
     }
     setSaving(true)
@@ -126,7 +195,21 @@ export function QuartosPage() {
       setShowModal(false)
       loadData()
     } catch (err) {
-      setError(await extractApiError(err))
+      if (err && typeof err === 'object' && 'response' in err) {
+        const response = (err as { response: Response }).response
+        try {
+          const body = await response.clone().json()
+          const { fieldErrors, apiMessage } = parseFieldErrors(body)
+          setFieldErrors(fieldErrors)
+          setError(apiMessage)
+        } catch {
+          setError('Erro ao conectar ao servidor.')
+        }
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Erro ao conectar ao servidor.')
+      }
     } finally {
       setSaving(false)
     }
@@ -195,6 +278,7 @@ export function QuartosPage() {
                 <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Andar</th>
                 <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Categoria</th>
                 <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Status</th>
+                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Última alteração</th>
                 <th className="text-right text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Ações</th>
               </tr>
             </thead>
@@ -202,14 +286,14 @@ export function QuartosPage() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    {Array.from({ length: 5 }).map((_, j) => (
+                    {Array.from({ length: 6 }).map((_, j) => (
                       <td key={j} className="px-6 py-4"><div className="skeleton h-5 w-full" /></td>
                     ))}
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted">
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted">
                     Nenhum quarto encontrado
                   </td>
                 </tr>
@@ -237,12 +321,37 @@ export function QuartosPage() {
                       <span className="text-sm text-gray-600">{getCategoriaNome(q.categoria)}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn(
-                        'inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold',
-                        StatusQuartoColors[q.status],
-                      )}>
-                        {StatusQuartoLabels[q.status]}
-                      </span>
+                      <select
+                        value={q.status}
+                        onChange={e => handleStatusChange(q.id, e.target.value as StatusQuarto)}
+                        disabled={updatingStatus[q.id]}
+                        className={cn(
+                          'cursor-pointer rounded-lg border-0 px-2.5 py-1 text-xs font-semibold focus:ring-2 focus:ring-primary-500/40 focus:outline-none',
+                          updatingStatus[q.id] && 'opacity-50',
+                          StatusQuartoColors[q.status],
+                        )}
+                      >
+                        {statusOptions.map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-xs text-muted">
+                        {q.status_changed_by_name && (
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {q.status_changed_by_name}
+                          </span>
+                        )}
+                        {q.status_changed_at && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDate(q.status_changed_at)}
+                          </span>
+                        )}
+                        {!q.status_changed_by_name && !q.status_changed_at && '—'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -303,9 +412,11 @@ export function QuartosPage() {
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <Input label="Número" placeholder="Ex: 101" value={form.numero}
-                      onChange={e => setForm({...form, numero: e.target.value})} />
+                      error={fieldErrors.numero?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, numero: undefined}); setForm({...form, numero: e.target.value}) }} />
                     <Input label="Andar" type="number" min={0} placeholder="1" value={form.andar}
-                      onChange={e => setForm({...form, andar: parseInt(e.target.value) || 0})} />
+                      error={fieldErrors.andar?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, andar: undefined}); setForm({...form, andar: parseInt(e.target.value) || 0}) }} />
                   </div>
 
                   <Select
@@ -313,7 +424,8 @@ export function QuartosPage() {
                     placeholder="Selecione uma categoria"
                     options={categorias.map(c => ({ value: String(c.id), label: `${c.nome} (${c.capacidade} pessoa${c.capacidade > 1 ? 's' : ''})` }))}
                     value={form.categoria ? String(form.categoria) : ''}
-                    onChange={e => setForm({...form, categoria: parseInt(e.target.value) || 0})}
+                    error={fieldErrors.categoria?.message}
+                    onChange={e => { setFieldErrors({...fieldErrors, categoria: undefined}); setForm({...form, categoria: parseInt(e.target.value) || 0}) }}
                   />
 
                   {editingId && (
@@ -321,7 +433,8 @@ export function QuartosPage() {
                       label="Status"
                       options={statusOptions}
                       value={form.status || 'DISP'}
-                      onChange={e => setForm({...form, status: e.target.value as StatusQuarto})}
+                      error={fieldErrors.status?.message}
+                      onChange={e => { setFieldErrors({...fieldErrors, status: undefined}); setForm({...form, status: e.target.value as StatusQuarto}) }}
                     />
                   )}
 

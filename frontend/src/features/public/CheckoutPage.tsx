@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import * as hotelService from '@/services/endpoints/hotel'
+import * as reservaService from '@/services/endpoints/reserva'
 import { useAuth } from '@/hooks/useAuth'
 import { AuthModal } from '@/features/auth/AuthModal'
 import { Button } from '@/features/shared/Button'
@@ -11,6 +12,21 @@ import {
   ArrowLeft, Calendar, Users, BedDouble,
   Clock, AlertTriangle, CheckCircle, CreditCard,
 } from 'lucide-react'
+
+async function extractApiError(err: unknown): Promise<string> {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const response = (err as { response: Response }).response
+    try {
+      const body = await response.clone().json() as Record<string, string[]>
+      const msgs = Object.values(body).flat().filter(Boolean)
+      return msgs.length > 0 ? msgs.join(' ') : 'Erro ao criar reserva. Tente novamente.'
+    } catch {
+      return 'Erro ao conectar ao servidor.'
+    }
+  }
+  if (err instanceof Error) return err.message
+  return 'Erro ao criar reserva. Tente novamente.'
+}
 
 export function CheckoutPage() {
   const [searchParams] = useSearchParams()
@@ -28,6 +44,7 @@ export function CheckoutPage() {
   const [loading, setLoading] = useState(true)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!hotelId) return
@@ -49,24 +66,49 @@ export function CheckoutPage() {
     })
   }
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!isAuthenticated) {
       setShowAuthModal(true)
       return
     }
     setConfirming(true)
-    // TODO: POST /api/reservas/ — por enquanto redireciona para sucesso
-    setTimeout(() => {
-      navigate('/reserva-sucesso?codigo=RES0001')
-    }, 1000)
+    setError('')
+    try {
+      const reserva = await reservaService.createReserva({
+        hotel: hotelId,
+        categoria: categoriaId,
+        dataEntrada,
+        dataSaida,
+        numHospedes,
+        valorTotal: categoria?.valorTotal ?? 0,
+      })
+      navigate(`/reserva-sucesso?codigo=${reserva.codigo}`)
+    } catch (err) {
+      setError(await extractApiError(err))
+    } finally {
+      setConfirming(false)
+    }
   }
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
     setShowAuthModal(false)
     setConfirming(true)
-    setTimeout(() => {
-      navigate('/reserva-sucesso?codigo=RES0001')
-    }, 1000)
+    setError('')
+    try {
+      const reserva = await reservaService.createReserva({
+        hotel: hotelId,
+        categoria: categoriaId,
+        dataEntrada,
+        dataSaida,
+        numHospedes,
+        valorTotal: categoria?.valorTotal ?? 0,
+      })
+      navigate(`/reserva-sucesso?codigo=${reserva.codigo}`)
+    } catch (err) {
+      setError(await extractApiError(err))
+    } finally {
+      setConfirming(false)
+    }
   }
 
   if (loading) {
@@ -212,6 +254,10 @@ export function CheckoutPage() {
                 <span className="text-xl font-bold text-primary-600">{formatCurrency(categoria.valorTotal)}</span>
               </div>
             </div>
+
+            {error && (
+              <p className="mt-4 text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>
+            )}
 
             <Button
               onClick={handleConfirm}

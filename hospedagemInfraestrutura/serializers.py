@@ -1,9 +1,10 @@
 import re
+from datetime import date
 
 from rest_framework import serializers
 
 from controleDeAcesso.serializers import EnderecoSerializer
-from .models import Hotel, CategoriaQuarto, Quarto, StatusQuarto
+from .models import Hotel, CategoriaQuarto, Quarto, StatusQuarto, Reserva, StatusReserva
 from .service import validar_cnpj, formatar_cnpj
 
 
@@ -63,18 +64,41 @@ class CategoriaQuartoSerializer(serializers.ModelSerializer):
 
 class QuartoSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
+    status_changed_by_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Quarto
         fields = [
-            'id', 'hotel', 'numero', 'andar', 'categoria', 'status',
-            'status_display', 'dataCriacao', 'dataAtualizacao',
+            'id', 'hotel', 'numero', 'andar', 'categoria', 'categoria_nome',
+            'status', 'status_display', 'status_changed_at', 'status_changed_by',
+            'status_changed_by_name', 'dataCriacao', 'dataAtualizacao',
         ]
-        read_only_fields = ['id', 'hotel', 'dataCriacao', 'dataAtualizacao']
+        read_only_fields = [
+            'id', 'hotel', 'status_changed_at', 'status_changed_by',
+            'status_changed_by_name', 'dataCriacao', 'dataAtualizacao',
+        ]
+
+    def get_status_changed_by_name(self, obj):
+        if obj.status_changed_by:
+            return obj.status_changed_by.username
+        return None
 
     def validate_status(self, value):
         if value not in StatusQuarto.values:
             raise serializers.ValidationError(f'Status inválido. Opções: {", ".join(StatusQuarto.values)}')
+        return value
+
+
+class QuartoStatusSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=StatusQuarto.choices)
+
+    def validate_status(self, value):
+        instance = self.instance
+        if instance and instance.status == StatusQuarto.OCUPADO and value != StatusQuarto.LIMPEZA:
+            raise serializers.ValidationError(
+                'Quartos ocupados só podem ser alterados para "Em Limpeza".'
+            )
         return value
 
 
@@ -121,3 +145,71 @@ class HotelPublicDetailSerializer(serializers.ModelSerializer):
 
     def get_totalQuartos(self, obj):
         return obj.quartos.filter(status=StatusQuarto.DISPONIVEL).count()
+
+
+class CategoriaDisponivelSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    nome = serializers.CharField()
+    descricao = serializers.CharField()
+    capacidade = serializers.IntegerField()
+    precoBase = serializers.DecimalField(max_digits=10, decimal_places=2)
+    quartosDisponiveis = serializers.IntegerField()
+    valorTotal = serializers.DecimalField(max_digits=10, decimal_places=2)
+    dias = serializers.IntegerField()
+
+
+class ReservaSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    hotel_nome = serializers.CharField(source='hotel.nome', read_only=True)
+    categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
+    quarto_numero = serializers.CharField(source='quarto.numero', read_only=True, allow_null=True)
+
+    class Meta:
+        model = Reserva
+        fields = [
+            'id', 'codigo', 'hospede', 'hotel', 'hotel_nome',
+            'categoria', 'categoria_nome', 'quarto', 'quarto_numero',
+            'dataEntrada', 'dataSaida', 'numHospedes', 'valorTotal',
+            'status', 'status_display', 'dataReserva', 'dataAtualizacao',
+        ]
+        read_only_fields = [
+            'id', 'codigo', 'status', 'dataReserva', 'dataAtualizacao',
+        ]
+
+
+class ReservaCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reserva
+        fields = [
+            'hotel', 'categoria', 'dataEntrada', 'dataSaida',
+            'numHospedes', 'valorTotal',
+        ]
+
+    def validate(self, attrs):
+        dataEntrada = attrs.get('dataEntrada')
+        dataSaida = attrs.get('dataSaida')
+
+        if dataEntrada and dataSaida and dataSaida <= dataEntrada:
+            raise serializers.ValidationError(
+                {'dataSaida': 'A data de saída deve ser posterior à data de entrada.'}
+            )
+
+        if dataEntrada and dataEntrada < date.today():
+            raise serializers.ValidationError(
+                {'dataEntrada': 'A data de entrada não pode ser no passado.'}
+            )
+
+        categoria = attrs.get('categoria')
+        hotel = attrs.get('hotel')
+
+        if categoria and hotel and categoria.hotel_id != hotel.id:
+            raise serializers.ValidationError(
+                {'categoria': 'A categoria não pertence ao hotel informado.'}
+            )
+
+        return attrs
+
+    def create(self, validated_data):
+        hospede = self.context['request'].user
+        validated_data['hospede'] = hospede
+        return super().create(validated_data)
