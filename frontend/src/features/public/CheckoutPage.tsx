@@ -66,7 +66,6 @@ export function CheckoutPage() {
         dataEntrada,
         dataSaida,
         numHospedes,
-        valorTotal: categoria?.valorTotal ?? 0,
       })
       navigate(`/reserva-sucesso?codigo=${reserva.codigo}`)
     } catch (err) {
@@ -87,7 +86,6 @@ export function CheckoutPage() {
         dataEntrada,
         dataSaida,
         numHospedes,
-        valorTotal: categoria?.valorTotal ?? 0,
       })
       navigate(`/reserva-sucesso?codigo=${reserva.codigo}`)
     } catch (err) {

@@ -178,8 +178,7 @@ class ReservaCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reserva
         fields = [
-            'hotel', 'categoria', 'dataEntrada', 'dataSaida',
-            'numHospedes', 'valorTotal',
+            'hotel', 'categoria', 'dataEntrada', 'dataSaida', 'numHospedes',
         ]
 
     def validate(self, attrs):
@@ -204,9 +203,48 @@ class ReservaCreateSerializer(serializers.ModelSerializer):
                 {'categoria': 'A categoria não pertence ao hotel informado.'}
             )
 
+        numHospedes = attrs.get('numHospedes')
+        if numHospedes and categoria and numHospedes > categoria.capacidade:
+            raise serializers.ValidationError(
+                {'numHospedes': f'O número de hóspedes ({numHospedes}) excede a capacidade da categoria ({categoria.capacidade}).'}
+            )
+
+        if categoria and dataEntrada and dataSaida:
+            from .service import verificar_disponibilidade
+            quartos_disp = verificar_disponibilidade(categoria, dataEntrada, dataSaida)
+            if quartos_disp == 0:
+                raise serializers.ValidationError(
+                    {'categoria': 'Não há quartos disponíveis para esta categoria no período selecionado.'}
+                )
+
         return attrs
 
     def create(self, validated_data):
-        hospede = self.context['request'].user
-        validated_data['hospede'] = hospede
+        from .service import calcular_valor_total, buscar_quarto_disponivel
+        validated_data['hospede'] = self.context['request'].user
+        validated_data['valorTotal'] = calcular_valor_total(
+            validated_data['categoria'],
+            validated_data['dataEntrada'],
+            validated_data['dataSaida'],
+        )
+        quarto = buscar_quarto_disponivel(
+            validated_data['categoria'],
+            validated_data['dataEntrada'],
+            validated_data['dataSaida'],
+        )
+        validated_data['quarto'] = quarto
         return super().create(validated_data)
+
+
+class ReservaCancelSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        if self.instance.status not in (StatusReserva.PENDENTE, StatusReserva.CONFIRMADA):
+            raise serializers.ValidationError(
+                'Somente reservas PENDENTES ou CONFIRMADAS podem ser canceladas.'
+            )
+        return attrs
+
+    def save(self, **kwargs):
+        self.instance.status = StatusReserva.CANCELADA
+        self.instance.save(update_fields=['status', 'dataAtualizacao'])
+        return self.instance

@@ -538,3 +538,283 @@ class QuartoStatusUpdateTest(BaseAPITest):
         self.auth(self.atendente_token)
         response = self.client.patch(self.url, {'status': 'XXXX'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+# ─────────────────────────────────────────
+# Reserva Tests
+# ─────────────────────────────────────────
+
+from datetime import date, timedelta
+from decimal import Decimal
+from unittest.mock import patch
+from .models import Reserva, StatusReserva
+from tarifasManutencao.models import Tarifa, TipoTemporada
+
+
+class ReservaFactory:
+    @staticmethod
+    def create(hotel=None, categoria=None, quarto=None, hospede=None, **kwargs):
+        if hotel is None:
+            hotel = HotelFactory.create()
+        if categoria is None:
+            categoria = CategoriaQuartoFactory.create(hotel=hotel)
+        if quarto is None:
+            quarto = QuartoFactory.create(hotel=hotel, categoria=categoria)
+        if hospede is None:
+            hospede = UsuarioFactory.create(role='HO')
+        today = date.today()
+        defaults = {
+            'hotel': hotel,
+            'categoria': categoria,
+            'quarto': quarto,
+            'hospede': hospede,
+            'dataEntrada': today + timedelta(days=1),
+            'dataSaida': today + timedelta(days=3),
+            'numHospedes': 2,
+            'valorTotal': 200,
+            'status': StatusReserva.PENDENTE,
+        }
+        defaults.update(kwargs)
+        return Reserva.objects.create(**defaults)
+
+
+class ReservaCreateAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.url = '/api/reservas/'
+        self.hospede.hotel = self.hotel
+        self.hospede.save()
+        self.hospede_token = str(RefreshToken.for_user(self.hospede).access_token)
+        Tarifa.objects.create(
+            categoria=self.categoria,
+            valorDiaria=Decimal('100.00'),
+            dataInicio=date.today() - timedelta(days=30),
+            dataFim=date.today() + timedelta(days=365),
+            tipoTemporada=TipoTemporada.BAIXA,
+        )
+
+    def test_create_reserva_valid(self):
+        self.auth(self.hospede_token)
+        data = {
+            'hotel': self.hotel.pk,
+            'categoria': self.categoria.pk,
+            'dataEntrada': (date.today() + timedelta(days=10)).isoformat(),
+            'dataSaida': (date.today() + timedelta(days=12)).isoformat(),
+            'numHospedes': 2,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['codigo'].startswith('RES'))
+        self.assertEqual(response.data['status'], 'PEND')
+        self.assertIsNotNone(response.data['quarto'])
+        self.assertGreater(Decimal(str(response.data['valorTotal'])), 0)
+
+    def test_create_reserva_calculates_valor_total(self):
+        self.auth(self.hospede_token)
+        data = {
+            'hotel': self.hotel.pk,
+            'categoria': self.categoria.pk,
+            'dataEntrada': (date.today() + timedelta(days=20)).isoformat(),
+            'dataSaida': (date.today() + timedelta(days=22)).isoformat(),
+            'numHospedes': 2,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Decimal(str(response.data['valorTotal'])), Decimal('200.00'))
+
+    def test_create_reserva_assigns_quarto(self):
+        self.auth(self.hospede_token)
+        data = {
+            'hotel': self.hotel.pk,
+            'categoria': self.categoria.pk,
+            'dataEntrada': (date.today() + timedelta(days=15)).isoformat(),
+            'dataSaida': (date.today() + timedelta(days=17)).isoformat(),
+            'numHospedes': 2,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        reserva = Reserva.objects.get(pk=response.data['id'])
+        self.assertIsNotNone(reserva.quarto)
+        self.assertEqual(reserva.quarto.categoria, self.categoria)
+
+    def test_create_reserva_num_hospedes_exceeds_capacidade(self):
+        self.auth(self.hospede_token)
+        data = {
+            'hotel': self.hotel.pk,
+            'categoria': self.categoria.pk,
+            'dataEntrada': (date.today() + timedelta(days=10)).isoformat(),
+            'dataSaida': (date.today() + timedelta(days=12)).isoformat(),
+            'numHospedes': 10,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_reserva_no_availability(self):
+        self.auth(self.hospede_token)
+        ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede,
+            dataEntrada=date.today() + timedelta(days=5),
+            dataSaida=date.today() + timedelta(days=7),
+            status=StatusReserva.CONFIRMADA,
+        )
+        data = {
+            'hotel': self.hotel.pk,
+            'categoria': self.categoria.pk,
+            'dataEntrada': (date.today() + timedelta(days=6)).isoformat(),
+            'dataSaida': (date.today() + timedelta(days=8)).isoformat(),
+            'numHospedes': 2,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_reserva_past_date(self):
+        self.auth(self.hospede_token)
+        data = {
+            'hotel': self.hotel.pk,
+            'categoria': self.categoria.pk,
+            'dataEntrada': (date.today() - timedelta(days=1)).isoformat(),
+            'dataSaida': (date.today() + timedelta(days=1)).isoformat(),
+            'numHospedes': 2,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_reserva_wrong_hotel_categoria(self):
+        other_hotel = HotelFactory.create(cnpj='99999999000199')
+        other_cat = CategoriaQuartoFactory.create(hotel=other_hotel)
+        self.auth(self.hospede_token)
+        data = {
+            'hotel': self.hotel.pk,
+            'categoria': other_cat.pk,
+            'dataEntrada': (date.today() + timedelta(days=10)).isoformat(),
+            'dataSaida': (date.today() + timedelta(days=12)).isoformat(),
+            'numHospedes': 2,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_reserva_unauthenticated(self):
+        data = {
+            'hotel': self.hotel.pk,
+            'categoria': self.categoria.pk,
+            'dataEntrada': (date.today() + timedelta(days=10)).isoformat(),
+            'dataSaida': (date.today() + timedelta(days=12)).isoformat(),
+            'numHospedes': 2,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    @patch('hospedagemInfraestrutura.service.send_mail')
+    def test_create_reserva_sends_email(self, mock_send_mail):
+        self.auth(self.hospede_token)
+        data = {
+            'hotel': self.hotel.pk,
+            'categoria': self.categoria.pk,
+            'dataEntrada': (date.today() + timedelta(days=10)).isoformat(),
+            'dataSaida': (date.today() + timedelta(days=12)).isoformat(),
+            'numHospedes': 2,
+        }
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mock_send_mail.assert_called_once()
+        args = mock_send_mail.call_args
+        self.assertIn(response.data['codigo'], args.kwargs.get('message', args[1] if len(args) > 1 else ''))
+
+
+class ReservaListAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.url = '/api/reservas/'
+        self.hospede.hotel = self.hotel
+        self.hospede.save()
+        self.hospede_token = str(RefreshToken.for_user(self.hospede).access_token)
+        self.reserva = ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede,
+        )
+
+    def test_list_reservas_hospede(self):
+        self.auth(self.hospede_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_list_reservas_gestor(self):
+        self.auth(self.gestor_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_list_reservas_unauthenticated(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ReservaDetailAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.hospede.hotel = self.hotel
+        self.hospede.save()
+        self.hospede_token = str(RefreshToken.for_user(self.hospede).access_token)
+        self.reserva = ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede,
+        )
+        self.url = f'/api/reservas/{self.reserva.pk}/'
+
+    def test_detail_own_reserva(self):
+        self.auth(self.hospede_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['codigo'], self.reserva.codigo)
+
+    def test_detail_other_user_reserva(self):
+        other_hospede = UsuarioFactory.create(role='HO', username='other', cpf='55555555555', telefone='85955555555')
+        other_token = str(RefreshToken.for_user(other_hospede).access_token)
+        self.auth(other_token)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ReservaCancelAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.hospede.hotel = self.hotel
+        self.hospede.save()
+        self.hospede_token = str(RefreshToken.for_user(self.hospede).access_token)
+        self.reserva = ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede,
+        )
+        self.url = f'/api/reservas/{self.reserva.pk}/cancelar/'
+
+    def test_cancel_reserva_pendente(self):
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.reserva.refresh_from_db()
+        self.assertEqual(self.reserva.status, StatusReserva.CANCELADA)
+
+    def test_cancel_reserva_confirmada(self):
+        self.reserva.status = StatusReserva.CONFIRMADA
+        self.reserva.save()
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.reserva.refresh_from_db()
+        self.assertEqual(self.reserva.status, StatusReserva.CANCELADA)
+
+    def test_cancel_reserva_check_in_denied(self):
+        self.reserva.status = StatusReserva.CHECK_IN
+        self.reserva.save()
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cancel_reserva_finalizada_denied(self):
+        self.reserva.status = StatusReserva.FINALIZADA
+        self.reserva.save()
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

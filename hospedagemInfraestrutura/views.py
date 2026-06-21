@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -15,6 +16,7 @@ from .serializers import (
     HotelSerializer, CategoriaQuartoSerializer, QuartoSerializer,
     QuartoStatusSerializer, HotelPublicSerializer, HotelPublicDetailSerializer,
     CategoriaDisponivelSerializer, ReservaSerializer, ReservaCreateSerializer,
+    ReservaCancelSerializer,
 )
 
 
@@ -217,12 +219,33 @@ class HotelDisponibilidadeView(APIView):
         return Response(serializer.data)
 
 
-class ReservaCreateView(generics.CreateAPIView):
-    serializer_class = ReservaCreateSerializer
+class ReservaListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(hospede=self.request.user)
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ReservaCreateSerializer
+        return ReservaSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ('GE', 'SV', 'AT'):
+            if user.role == 'GE':
+                return Reserva.objects.filter(hotel__gestor=user)
+            return Reserva.objects.filter(hotel=user.hotel)
+        return Reserva.objects.filter(hospede=user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        from .service import enviar_email_confirmacao_reserva
+        with transaction.atomic():
+            reserva = serializer.save()
+            enviar_email_confirmacao_reserva(reserva)
+        return Response(
+            ReservaSerializer(reserva).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ReservaDetailView(generics.RetrieveAPIView):
@@ -230,6 +253,34 @@ class ReservaDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
+        user = self.request.user
+        if user.role in ('GE', 'SV', 'AT'):
+            if user.role == 'GE':
+                return get_object_or_404(
+                    Reserva, pk=self.kwargs['pk'], hotel__gestor=user,
+                )
+            return get_object_or_404(
+                Reserva, pk=self.kwargs['pk'], hotel=user.hotel,
+            )
         return get_object_or_404(
-            Reserva, pk=self.kwargs['pk'], hospede=self.request.user,
+            Reserva, pk=self.kwargs['pk'], hospede=user,
+        )
+
+
+class ReservaCancelView(generics.UpdateAPIView):
+    serializer_class = ReservaCancelSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        user = self.request.user
+        if user.role in ('GE', 'SV', 'AT'):
+            if user.role == 'GE':
+                return get_object_or_404(
+                    Reserva, pk=self.kwargs['pk'], hotel__gestor=user,
+                )
+            return get_object_or_404(
+                Reserva, pk=self.kwargs['pk'], hotel=user.hotel,
+            )
+        return get_object_or_404(
+            Reserva, pk=self.kwargs['pk'], hospede=user,
         )

@@ -1,7 +1,15 @@
+import logging
 import re
+from datetime import timedelta
+from decimal import Decimal
 
-from .models import Hotel
+from django.core.mail import send_mail
+from django.conf import settings
+
+from .models import Hotel, Quarto, StatusQuarto, Reserva, StatusReserva
 from controleDeAcesso.models import Endereco
+
+logger = logging.getLogger(__name__)
 
 
 def validar_cnpj(cnpj):
@@ -53,3 +61,67 @@ def criar_hotel(data, gestor):
         **data,
     )
     return hotel
+
+
+def calcular_valor_total(categoria, data_entrada, data_saida):
+    from tarifasManutencao.models import Tarifa
+
+    valor_total = Decimal('0.00')
+    current = data_entrada
+    while current < data_saida:
+        tarifa = Tarifa.objects.filter(
+            categoria=categoria,
+            dataInicio__lte=current,
+            dataFim__gte=current,
+        ).order_by('-dataInicio').first()
+
+        valor_total += tarifa.valorDiaria if tarifa else categoria.precoBase
+        current += timedelta(days=1)
+    return valor_total
+
+
+def verificar_disponibilidade(categoria, data_entrada, data_saida):
+    total_rooms = categoria.quartos.filter(status=StatusQuarto.DISPONIVEL).count()
+    overlapping = Reserva.objects.filter(
+        categoria=categoria,
+        status__in=[StatusReserva.PENDENTE, StatusReserva.CONFIRMADA],
+        dataEntrada__lt=data_saida,
+        dataSaida__gt=data_entrada,
+    ).count()
+    return max(0, total_rooms - overlapping)
+
+
+def buscar_quarto_disponivel(categoria, data_entrada, data_saida):
+    quartos = categoria.quartos.filter(status=StatusQuarto.DISPONIVEL)
+    ocupados = Reserva.objects.filter(
+        categoria=categoria,
+        status__in=[StatusReserva.PENDENTE, StatusReserva.CONFIRMADA],
+        dataEntrada__lt=data_saida,
+        dataSaida__gt=data_entrada,
+    ).values_list('quarto_id', flat=True)
+    return quartos.exclude(pk__in=ocupados).first()
+
+
+def enviar_email_confirmacao_reserva(reserva):
+    try:
+        send_mail(
+            subject=f'Reserva {reserva.codigo} confirmada - Serro Hotelaria',
+            message=(
+                f'Olá {reserva.hospede.first_name},\n\n'
+                f'Sua reserva foi realizada com sucesso!\n\n'
+                f'Código: {reserva.codigo}\n'
+                f'Hotel: {reserva.hotel.nome}\n'
+                f'Categoria: {reserva.categoria.nome}\n'
+                f'Quarto: {reserva.quarto.numero}\n'
+                f'Check-in: {reserva.dataEntrada.strftime("%d/%m/%Y")}\n'
+                f'Check-out: {reserva.dataSaida.strftime("%d/%m/%Y")}\n'
+                f'Hóspedes: {reserva.numHospedes}\n'
+                f'Valor Total: R$ {reserva.valorTotal:.2f}\n\n'
+                f'Aguardamos você!'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[reserva.hospede.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.warning(f'Falha ao enviar email de confirmação para {reserva.hospede.email}: {e}')

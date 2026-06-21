@@ -1,15 +1,19 @@
-export type StatusReserva = 'CONF' | 'CANC' | 'FINA'
+export type StatusReserva = 'PEND' | 'CONF' | 'CHIN' | 'FINA' | 'CANC'
 
 export const StatusReservaLabels: Record<StatusReserva, string> = {
+  PEND: 'Pendente',
   CONF: 'Confirmada',
-  CANC: 'Cancelada',
+  CHIN: 'Check-in',
   FINA: 'Finalizada',
+  CANC: 'Cancelada',
 }
 
 export const StatusReservaColors: Record<StatusReserva, string> = {
+  PEND: 'bg-yellow-100 text-yellow-700',
   CONF: 'bg-green-100 text-green-700',
-  CANC: 'bg-red-100 text-red-700',
+  CHIN: 'bg-blue-100 text-blue-700',
   FINA: 'bg-gray-100 text-gray-700',
+  CANC: 'bg-red-100 text-red-700',
 }
 
 export interface Reserva {
@@ -38,5 +42,4 @@ export interface ReservaCreateRequest {
   dataEntrada: string
   dataSaida: string
   numHospedes: number
-  valorTotal: number
 }
