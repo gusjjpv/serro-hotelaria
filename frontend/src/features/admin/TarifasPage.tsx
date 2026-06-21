@@ -5,6 +5,7 @@ import { Button } from '@/features/shared/Button'
 import { Input } from '@/features/shared/Input'
 import { Select } from '@/features/shared/Select'
 import { formatCurrency, cn } from '@/lib/utils'
+import { parseFieldErrors, extractApiError } from '@/lib/api-errors'
 import * as tarifaService from '@/services/endpoints/tarifa'
 import * as categoriaService from '@/services/endpoints/categoria'
 import type { Tarifa, TarifaCreateRequest, TipoTemporada } from '@/types/tarifa'
@@ -34,20 +35,6 @@ const emptyForm: TarifaCreateRequest = {
   tipoTemporada: 'ALTA',
 }
 
-async function extractApiError(err: unknown): Promise<string> {
-  if (err && typeof err === 'object' && 'response' in err) {
-    const response = (err as { response: Response }).response
-    try {
-      const body = await response.clone().json() as Record<string, string[] | string>
-      return Object.values(body).flat().join(' ')
-    } catch {
-      return 'Erro ao conectar ao servidor.'
-    }
-  }
-  if (err instanceof Error) return err.message
-  return 'Erro ao conectar ao servidor.'
-}
-
 export function TarifasPage() {
   const [tarifas, setTarifas] = useState<Tarifa[]>([])
   const [categorias, setCategorias] = useState<CategoriaQuarto[]>([])
@@ -58,6 +45,7 @@ export function TarifasPage() {
   const [form, setForm] = useState<TarifaCreateRequest>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, any>>({})
 
   const loadData = async () => {
     try {
@@ -125,6 +113,7 @@ export function TarifasPage() {
     }
     setSaving(true)
     setError('')
+    setFieldErrors({})
     try {
       if (editingId) {
         await tarifaService.updateTarifa(editingId, form)
@@ -134,7 +123,21 @@ export function TarifasPage() {
       setShowModal(false)
       loadData()
     } catch (err) {
-      setError(await extractApiError(err))
+      if (err && typeof err === 'object' && 'response' in err) {
+        const response = (err as { response: Response }).response
+        try {
+          const body = await response.clone().json()
+          const parsed = parseFieldErrors(body)
+          setFieldErrors(parsed.fieldErrors)
+          setError(parsed.apiMessage)
+        } catch {
+          setError('Erro ao conectar ao servidor.')
+        }
+      } else if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Erro ao conectar ao servidor.')
+      }
     } finally {
       setSaving(false)
     }
@@ -306,6 +309,7 @@ export function TarifasPage() {
                     options={categorias.map(c => ({ value: String(c.id), label: c.nome }))}
                     value={form.categoria ? String(form.categoria) : ''}
                     onChange={e => setForm({...form, categoria: Number(e.target.value)})}
+                    error={fieldErrors?.categoria?.message}
                   />
 
                   <Input
@@ -316,6 +320,7 @@ export function TarifasPage() {
                     placeholder="0.00"
                     value={form.valorDiaria || ''}
                     onChange={e => setForm({...form, valorDiaria: parseFloat(e.target.value) || 0})}
+                    error={fieldErrors?.valorDiaria?.message}
                   />
 
                   <div className="grid grid-cols-2 gap-4">
@@ -324,12 +329,14 @@ export function TarifasPage() {
                       type="date"
                       value={form.dataInicio}
                       onChange={e => setForm({...form, dataInicio: e.target.value})}
+                      error={fieldErrors?.dataInicio?.message}
                     />
                     <Input
                       label="Data Fim"
                       type="date"
                       value={form.dataFim}
                       onChange={e => setForm({...form, dataFim: e.target.value})}
+                      error={fieldErrors?.dataFim?.message}
                     />
                   </div>
 
@@ -338,6 +345,7 @@ export function TarifasPage() {
                     options={temporadaOptions}
                     value={form.tipoTemporada}
                     onChange={e => setForm({...form, tipoTemporada: e.target.value as TipoTemporada})}
+                    error={fieldErrors?.tipoTemporada?.message}
                   />
 
                   {error && (

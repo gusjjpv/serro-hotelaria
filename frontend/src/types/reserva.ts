@@ -20,25 +20,26 @@ export interface Reserva {
   id: number
   codigo: string
   hospede: number
-  quarto: number
+  hotel: number
+  hotel_nome: string
+  categoria: number
+  categoria_nome: string
+  quarto: number | null
+  quarto_numero: string | null
   dataEntrada: string
   dataSaida: string
   numHospedes: number
+  valorTotal: number
   status: StatusReserva
   status_display: string
-  valorTotal: number
-  dataCriacao: string
+  dataReserva: string
   dataAtualizacao: string
 }
 
 export interface ReservaCreateRequest {
-  quarto: number
+  hotel: number
+  categoria: number
   dataEntrada: string
   dataSaida: string
   numHospedes: number
-}
-
-export interface ReservaListResponse extends Reserva {
-  quarto_numero?: string
-  categoria_nome?: string
 }

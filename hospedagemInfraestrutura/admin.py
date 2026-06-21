@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Hotel, CategoriaQuarto, Quarto
+from .models import Hotel, CategoriaQuarto, Quarto, Reserva
 
 
 @admin.register(Hotel)
@@ -56,5 +56,25 @@ class QuartoAdmin(admin.ModelAdmin):
         }),
         ('Datas', {
             'fields': ('dataCriacao', 'dataAtualizacao')
+        }),
+    )
+
+
+@admin.register(Reserva)
+class ReservaAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'hospede', 'hotel', 'categoria', 'quarto', 'dataEntrada', 'dataSaida', 'status', 'valorTotal')
+    search_fields = ('codigo', 'hospede__username', 'hospede__first_name')
+    list_filter = ('status', 'hotel', 'categoria')
+    readonly_fields = ('codigo', 'dataReserva', 'dataAtualizacao')
+
+    fieldsets = (
+        ('Reserva', {
+            'fields': ('codigo', 'hospede', 'hotel', 'categoria', 'quarto')
+        }),
+        ('Estadia', {
+            'fields': ('dataEntrada', 'dataSaida', 'numHospedes', 'valorTotal', 'status')
+        }),
+        ('Datas', {
+            'fields': ('dataReserva', 'dataAtualizacao')
         }),
     )
