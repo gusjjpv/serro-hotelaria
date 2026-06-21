@@ -94,11 +94,8 @@ class QuartoStatusSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=StatusQuarto.choices)
 
     def validate_status(self, value):
-        instance = self.instance
-        if instance and instance.status == StatusQuarto.OCUPADO and value != StatusQuarto.LIMPEZA:
-            raise serializers.ValidationError(
-                'Quartos ocupados só podem ser alterados para "Em Limpeza".'
-            )
+        if value not in StatusQuarto.values:
+            raise serializers.ValidationError(f'Status inválido. Opções: {", ".join(StatusQuarto.values)}')
         return value
 
 

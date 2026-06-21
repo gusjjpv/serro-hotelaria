@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from controleDeAcesso.permissions import IsGestor, IsSupervisor, IsAtendente
-from .models import Hotel, CategoriaQuarto, Quarto, StatusQuarto, Reserva, StatusReserva, ALLOWED_QUARTO_TRANSITIONS
+from .models import Hotel, CategoriaQuarto, Quarto, StatusQuarto, Reserva, StatusReserva, ALLOWED_QUARTO_TRANSITIONS, ATENDENTE_ALLOWED_TRANSITIONS
 from .serializers import (
     HotelSerializer, CategoriaQuartoSerializer, QuartoSerializer,
     QuartoStatusSerializer, HotelPublicSerializer, HotelPublicDetailSerializer,
@@ -97,7 +97,7 @@ class QuartoDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class QuartoStatusUpdateView(generics.UpdateAPIView):
     serializer_class = QuartoStatusSerializer
-    permission_classes = [IsAuthenticated, IsSupervisor]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -109,8 +109,13 @@ class QuartoStatusUpdateView(generics.UpdateAPIView):
         instance = self.get_object()
         new_status = serializer.validated_data['status']
         old_status = instance.status
+        user = self.request.user
 
-        allowed = ALLOWED_QUARTO_TRANSITIONS.get(old_status, [])
+        if user.role == 'AT':
+            allowed = ATENDENTE_ALLOWED_TRANSITIONS.get(old_status, [])
+        else:
+            allowed = ALLOWED_QUARTO_TRANSITIONS.get(old_status, [])
+
         if new_status not in allowed:
             raise serializers.ValidationError(
                 {'status': f'Não é permitido alterar de "{instance.get_status_display()}" para "{dict(StatusQuarto.choices).get(new_status)}".'}
@@ -118,7 +123,7 @@ class QuartoStatusUpdateView(generics.UpdateAPIView):
 
         instance.status = new_status
         instance.status_changed_at = timezone.now()
-        instance.status_changed_by = self.request.user
+        instance.status_changed_by = user
         instance.save(update_fields=['status', 'status_changed_at', 'status_changed_by'])
 
 

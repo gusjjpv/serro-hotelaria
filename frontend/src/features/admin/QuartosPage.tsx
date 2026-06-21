@@ -6,6 +6,7 @@ import { Input } from '@/features/shared/Input'
 import { Select } from '@/features/shared/Select'
 import { cn, formatDate } from '@/lib/utils'
 import { parseFieldErrors, extractApiError } from '@/lib/api-errors'
+import { useAuth } from '@/hooks/useAuth'
 import * as quartoService from '@/services/endpoints/quarto'
 import * as categoriaService from '@/services/endpoints/categoria'
 import type { Quarto, QuartoCreateRequest, CategoriaQuarto, StatusQuarto } from '@/types/quarto'
@@ -29,7 +30,14 @@ const statusOptions = [
   { value: 'MANU', label: 'Manutenção' },
 ]
 
-const ALLOWED_TRANSITIONS: Record<StatusQuarto, StatusQuarto[]> = {
+const ATENDENTE_TRANSITIONS: Record<StatusQuarto, StatusQuarto[]> = {
+  DISP: ['OCUP', 'LIMP'],
+  OCUP: [],
+  LIMP: ['DISP'],
+  MANU: [],
+}
+
+const ALL_TRANSITIONS: Record<StatusQuarto, StatusQuarto[]> = {
   DISP: ['OCUP', 'LIMP', 'MANU'],
   OCUP: ['LIMP'],
   LIMP: ['DISP', 'MANU'],
@@ -44,6 +52,7 @@ const emptyForm: QuartoCreateRequest = {
 }
 
 export function QuartosPage() {
+  const { role } = useAuth()
   const [quartos, setQuartos] = useState<Quarto[]>([])
   const [categorias, setCategorias] = useState<CategoriaQuarto[]>([])
   const [loading, setLoading] = useState(true)
@@ -56,6 +65,8 @@ export function QuartosPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, any>>({})
   const [error, setError] = useState('')
   const [updatingStatus, setUpdatingStatus] = useState<Record<number, boolean>>({})
+
+  const allowedTransitions = role === 'AT' ? ATENDENTE_TRANSITIONS : ALL_TRANSITIONS
 
   const loadData = async () => {
     try {
@@ -280,7 +291,7 @@ export function QuartosPage() {
                         )}
                       >
                         {statusOptions
-                          .filter(s => ALLOWED_TRANSITIONS[q.status]?.includes(s.value as StatusQuarto))
+                          .filter(s => allowedTransitions[q.status]?.includes(s.value as StatusQuarto))
                           .map(s => (
                             <option key={s.value} value={s.value}>{s.label}</option>
                           ))}

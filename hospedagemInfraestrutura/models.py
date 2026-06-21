@@ -17,6 +17,13 @@ ALLOWED_QUARTO_TRANSITIONS = {
     StatusQuarto.MANUTENCAO: [StatusQuarto.DISPONIVEL],
 }
 
+ATENDENTE_ALLOWED_TRANSITIONS = {
+    StatusQuarto.DISPONIVEL: [StatusQuarto.OCUPADO, StatusQuarto.LIMPEZA],
+    StatusQuarto.OCUPADO: [],
+    StatusQuarto.LIMPEZA: [StatusQuarto.DISPONIVEL],
+    StatusQuarto.MANUTENCAO: [],
+}
+
 
 class StatusReserva(models.TextChoices):
     PENDENTE = 'PEND', 'Pendente'

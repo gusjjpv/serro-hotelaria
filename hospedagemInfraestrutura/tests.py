@@ -437,3 +437,104 @@ class QuartoDisponivelAPITest(BaseAPITest):
     def test_quartos_disponiveis_unauthenticated(self):
         response = self.client.get('/api/quartos/disponiveis/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class QuartoStatusUpdateTest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.atendente.hotel = self.hotel
+        self.atendente.save()
+        self.url = f'/api/quartos/{self.quarto.pk}/status/'
+
+    def test_atendente_disp_to_ocup(self):
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {'status': 'OCUP'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.OCUPADO)
+
+    def test_atendente_disp_to_limp(self):
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {'status': 'LIMP'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.LIMPEZA)
+
+    def test_atendente_limp_to_disp(self):
+        self.quarto.status = StatusQuarto.LIMPEZA
+        self.quarto.save()
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {'status': 'DISP'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.DISPONIVEL)
+
+    def test_atendente_disp_to_manu_denied(self):
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {'status': 'MANU'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_atendente_ocup_to_anything_denied(self):
+        self.quarto.status = StatusQuarto.OCUPADO
+        self.quarto.save()
+        self.auth(self.atendente_token)
+        for target in ['DISP', 'LIMP', 'MANU']:
+            response = self.client.patch(self.url, {'status': target}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_atendente_manu_to_anything_denied(self):
+        self.quarto.status = StatusQuarto.MANUTENCAO
+        self.quarto.save()
+        self.auth(self.atendente_token)
+        for target in ['DISP', 'LIMP', 'OCUP']:
+            response = self.client.patch(self.url, {'status': target}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_supervisor_disp_to_manu(self):
+        self.auth(self.supervisor_token)
+        response = self.client.patch(self.url, {'status': 'MANU'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.MANUTENCAO)
+
+    def test_supervisor_ocup_to_limp(self):
+        self.quarto.status = StatusQuarto.OCUPADO
+        self.quarto.save()
+        self.auth(self.supervisor_token)
+        response = self.client.patch(self.url, {'status': 'LIMP'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.LIMPEZA)
+
+    def test_supervisor_manu_to_disp(self):
+        self.quarto.status = StatusQuarto.MANUTENCAO
+        self.quarto.save()
+        self.auth(self.supervisor_token)
+        response = self.client.patch(self.url, {'status': 'DISP'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.DISPONIVEL)
+
+    def test_gestor_disp_to_manu(self):
+        self.auth(self.gestor_token)
+        response = self.client.patch(self.url, {'status': 'MANU'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.MANUTENCAO)
+
+    def test_status_change_records_audit(self):
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {'status': 'OCUP'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.quarto.refresh_from_db()
+        self.assertIsNotNone(self.quarto.status_changed_at)
+        self.assertEqual(self.quarto.status_changed_by, self.atendente)
+
+    def test_unauthenticated_denied(self):
+        response = self.client.patch(self.url, {'status': 'OCUP'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_invalid_status_value(self):
+        self.auth(self.atendente_token)
+        response = self.client.patch(self.url, {'status': 'XXXX'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
