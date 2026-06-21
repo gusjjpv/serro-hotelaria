@@ -838,3 +838,81 @@ class ReservaCancelAPITest(BaseAPITest):
         mock_send_mail.assert_called_once()
         args = mock_send_mail.call_args
         self.assertIn(self.reserva.codigo, args.kwargs.get('message', args[1] if len(args) > 1 else ''))
+
+
+class ReservaCheckInAPITest(BaseAPITest):
+    def setUp(self):
+        super().setUp()
+        self.hospede.hotel = self.hotel
+        self.hospede.save()
+        self.hospede_token = str(RefreshToken.for_user(self.hospede).access_token)
+        self.reserva = ReservaFactory.create(
+            hotel=self.hotel, categoria=self.categoria, quarto=self.quarto,
+            hospede=self.hospede, status=StatusReserva.CONFIRMADA,
+            dataEntrada=date.today() + timedelta(days=1),
+        )
+        self.url = f'/api/reservas/{self.reserva.pk}/check-in/'
+
+    def test_checkin_valid(self):
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.reserva.refresh_from_db()
+        self.assertEqual(self.reserva.status, StatusReserva.CHECK_IN)
+        self.quarto.refresh_from_db()
+        self.assertEqual(self.quarto.status, StatusQuarto.OCUPADO)
+
+    def test_checkin_not_confirmada_denied(self):
+        self.reserva.status = StatusReserva.PENDENTE
+        self.reserva.save()
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_checkin_check_in_already_denied(self):
+        self.reserva.status = StatusReserva.CHECK_IN
+        self.reserva.save()
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_checkin_cancelled_denied(self):
+        self.reserva.status = StatusReserva.CANCELADA
+        self.reserva.save()
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_checkin_too_early_denied(self):
+        self.reserva.dataEntrada = date.today() + timedelta(days=3)
+        self.reserva.save()
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_checkin_unauthenticated(self):
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_checkin_other_user_denied(self):
+        other_hospede = UsuarioFactory.create(role='HO', username='other', cpf='55555555555', telefone='85955555555')
+        other_token = str(RefreshToken.for_user(other_hospede).access_token)
+        self.auth(other_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    @patch('hospedagemInfraestrutura.service.send_mail')
+    def test_checkin_sends_email(self, mock_send_mail):
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_send_mail.assert_called_once()
+        args = mock_send_mail.call_args
+        self.assertIn(self.reserva.codigo, args.kwargs.get('message', args[1] if len(args) > 1 else ''))
+
+    def test_checkin_no_quarto_denied(self):
+        self.reserva.quarto = None
+        self.reserva.save()
+        self.auth(self.hospede_token)
+        response = self.client.patch(self.url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

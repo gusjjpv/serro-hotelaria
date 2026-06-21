@@ -1,6 +1,7 @@
 import re
-from datetime import date
+from datetime import date, datetime, timedelta, time
 
+from django.utils import timezone
 from rest_framework import serializers
 
 from controleDeAcesso.serializers import EnderecoSerializer
@@ -250,4 +251,30 @@ class ReservaCancelSerializer(serializers.Serializer):
         if self.instance.quarto:
             self.instance.quarto.status = StatusQuarto.DISPONIVEL
             self.instance.quarto.save(update_fields=['status'])
+        return self.instance
+
+
+class ReservaCheckInSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        reserva = self.instance
+        if reserva.status != StatusReserva.CONFIRMADA:
+            raise serializers.ValidationError(
+                'Somente reservas CONFIRMADAS podem realizar check-in.'
+            )
+        if not reserva.quarto:
+            raise serializers.ValidationError(
+                'Reserva sem quarto atribuído. Cannot realizar check-in.'
+            )
+        limite = timezone.make_aware(datetime.combine(reserva.dataEntrada, time.min) - timedelta(hours=24))
+        if timezone.now() < limite:
+            raise serializers.ValidationError(
+                'Check-in disponível apenas a partir do dia anterior à data de entrada.'
+            )
+        return attrs
+
+    def save(self, **kwargs):
+        self.instance.status = StatusReserva.CHECK_IN
+        self.instance.save(update_fields=['status', 'dataAtualizacao'])
+        self.instance.quarto.status = StatusQuarto.OCUPADO
+        self.instance.quarto.save(update_fields=['status'])
         return self.instance
