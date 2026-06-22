@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+
+actor "Usuário" as usuario
+actor "Atendente" as atendente
+
+usuario <|-right- atendente
+
+rectangle "Caso de uso - Atendente" {
+    package "Recepção e Governança" {
+        usecase "Gerenciar Check-in/out Presencial" as uc07
+        usecase "Atualizar Status do Quarto (Ocupação)" as uc10
+    }
+
+    package "Financeiro" {
+        usecase "Lançar Consumo na Conta do Quarto" as uc09
+    }
+
+    atendente -- uc07
+    atendente -- uc10
+    atendente -- uc09
+}
+
+@enduml

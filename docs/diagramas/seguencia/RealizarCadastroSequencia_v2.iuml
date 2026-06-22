@@ -1,0 +1,129 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam maxmessagesize 150
+
+skinparam sequence {
+    LifeLineBorderColor #4A4A4A
+    LifeLineBackgroundColor #F9F9F9
+    GroupBorderColor #000000
+    GroupHeaderFontColor Black
+    GroupHeaderBackgroundColor #1565C0
+    ActorBorderColor #4A4A4A
+    ParticipantBorderColor #4A4A4A
+    ParticipantBackgroundColor White
+}
+
+actor "Usuário" as user
+boundary "view : TelaCadastro" as tela
+control "ctrl : RegisterView" as ctrl
+control "serializer : RegisterSerializer" as serializer
+control "service : criar_usuario()" as service
+database "db : BancoDeDados" as db
+
+user -> tela : P.01 acessarTelaCadastro()
+activate tela
+tela -->> user : P.02 exibirFormularioCadastro()
+
+user -> tela : P.03 informarDados(dadosCadastro)
+tela -> ctrl : P.04 cadastrar(dadosCadastro)
+activate ctrl
+
+ctrl -> serializer : P.05 validar(dadosCadastro)
+activate serializer
+
+alt E01: Dados Inválidos
+    serializer -->> ctrl : E.01 erro("Dados inválidos")
+    ctrl -->> tela : E.02 erro(400, camposInvalidos)
+    tela -->> user : E.03 exibirMensagemErro(camposInvalidos)
+
+else P01: Dados Válidos
+    serializer -> db : P.06 verificarEmailExistente(email)
+    activate db
+    db -->> serializer : P.07 emailExiste()
+    deactivate db
+
+    alt E02: Email já cadastrado
+        serializer -->> ctrl : E.04 erro("Email já cadastrado")
+        ctrl -->> tela : E.05 erro(400, email)
+        tela -->> user : E.06 exibirMensagemErro()
+
+    else P02: Email disponível
+        serializer -> db : P.08 verificarUsernameExistente(username)
+        activate db
+        db -->> serializer : P.09 usernameExiste()
+        deactivate db
+
+        alt E03: Username já cadastrado
+            serializer -->> ctrl : E.07 erro("Username já cadastrado")
+            ctrl -->> tela : E.08 erro(400, username)
+            tela -->> user : E.09 exibirMensagemErro()
+
+        else P03: Username disponível
+            serializer -> db : P.10 verificarCpfExistente(cpf)
+            activate db
+            db -->> serializer : P.11 cpfExiste()
+            deactivate db
+
+            alt E04: CPF já cadastrado
+                serializer -->> ctrl : E.10 erro("CPF já cadastrado")
+                ctrl -->> tela : E.11 erro(400, cpf)
+                tela -->> user : E.12 exibirMensagemErro()
+
+            else P04: CPF disponível
+                serializer -> db : P.12 verificarTelefoneExistente(telefone)
+                activate db
+                db -->> serializer : P.13 telefoneExiste()
+                deactivate db
+
+                alt E05: Telefone já cadastrado
+                    serializer -->> ctrl : E.13 erro("Telefone já cadastrado")
+                    ctrl -->> tela : E.14 erro(400, telefone)
+                    tela -->> user : E.15 exibirMensagemErro()
+
+                else P05: Telefone disponível
+                    deactivate serializer
+
+                    ctrl -> service : P.14 criar_usuario(dadosCadastro)
+                    activate service
+
+                    create entity "novoHospede : Hospede" as novoHospede
+                    service -> novoHospede : P.15 <<create>> (new Hospede)
+                    activate novoHospede
+                    novoHospede -->> service : P.16 hospedeInstanciado
+                    deactivate novoHospede
+
+                    service -> db : P.17 salvarHospede(novoHospede.dados)
+                    activate db
+                    db -->> service : P.18 idHospedeGerado
+                    deactivate db
+
+                    service -->> ctrl : P.19 hospedeCriado
+                    deactivate service
+
+                    ctrl -> service : P.20 enviar_email_boas_vindas(novoHospede)
+                    activate service
+                    service -> db : P.21 enviarEmail(smtp)
+                    activate db
+                    db -->> service : P.22 emailEnviado
+                    deactivate db
+                    deactivate service
+
+                    ctrl -> service : P.23 gerar_tokens(novoHospede)
+                    activate service
+                    service -->> ctrl : P.24 access_token, refresh_token
+                    deactivate service
+
+                    ctrl -->> tela : P.25 cadastroRealizado(tokens)
+                    deactivate ctrl
+
+                    tela -->> user : P.26 exibirMensagemSucesso()
+                end
+            end
+        end
+    end
+end
+
+deactivate tela
+
+@enduml
