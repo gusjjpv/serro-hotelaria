@@ -7,7 +7,7 @@ from .views import (
     QuartoStatusUpdateView,
     ReservaListCreateView, ReservaDetailView, ReservaCancelView,
     ReservaCheckInView, ReservaCheckInPresencialView, ReservaCheckOutView,
-    PainelDoDiaView, DashboardView, RelatorioFaturamentoView,
+    ReservaContaView, PainelDoDiaView, DashboardView, RelatorioFaturamentoView,
 )
 
 urlpatterns = [
@@ -28,6 +28,7 @@ urlpatterns = [
     path('reservas/<int:pk>/check-in/', ReservaCheckInView.as_view(), name='reserva-checkin'),
     path('reservas/<int:pk>/checkin-presencial/', ReservaCheckInPresencialView.as_view(), name='reserva-checkin-presencial'),
     path('reservas/<int:pk>/checkout/', ReservaCheckOutView.as_view(), name='reserva-checkout'),
+    path('reservas/<int:pk>/conta/', ReservaContaView.as_view(), name='reserva-conta'),
     path('reservas/painel-do-dia/', PainelDoDiaView.as_view(), name='reserva-painel-do-dia'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('relatorios/faturamento/', RelatorioFaturamentoView.as_view(), name='relatorio-faturamento'),

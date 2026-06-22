@@ -16,7 +16,7 @@ import {
 
 const quickActions = [
   { label: 'Nova Reserva', icon: CalendarCheck, color: 'bg-blue-500', href: '#', comingSoon: true },
-  { label: 'Check-in Online', icon: BedDouble, color: 'bg-green-500', href: '#', comingSoon: true },
+  { label: 'Check-in Online', icon: BedDouble, color: 'bg-green-500', href: '/app/checkin', comingSoon: false },
   { label: 'Ver Extrato', icon: ClipboardList, color: 'bg-purple-500', href: '#', comingSoon: true },
   { label: 'Serviços', icon: ShoppingCart, color: 'bg-orange-500', href: '#', comingSoon: true },
 ]

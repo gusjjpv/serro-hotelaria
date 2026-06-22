@@ -163,6 +163,7 @@ class HotelDisponibilidadeView(APIView):
 
     def get(self, request, pk):
         hotel = get_object_or_404(Hotel, pk=pk)
+        from .service import calcular_valor_total
 
         try:
             data_entrada = date.fromisoformat(request.query_params.get('dataEntrada', ''))
@@ -177,14 +178,12 @@ class HotelDisponibilidadeView(APIView):
 
         categorias = hotel.categorias.filter(capacidade__gte=num_hospedes)
 
-        from tarifasManutencao.models import Tarifa
-
         results = []
         for cat in categorias:
             total_rooms = cat.quartos.filter(status=StatusQuarto.DISPONIVEL).count()
             overlapping = Reserva.objects.filter(
                 categoria=cat,
-                status=StatusReserva.CONFIRMADA,
+                status__in=[StatusReserva.PENDENTE, StatusReserva.CONFIRMADA],
                 dataEntrada__lt=data_saida,
                 dataSaida__gt=data_entrada,
             ).count()
@@ -193,17 +192,7 @@ class HotelDisponibilidadeView(APIView):
             if quartos_disponiveis == 0:
                 continue
 
-            valor_total = Decimal('0.00')
-            current = data_entrada
-            while current < data_saida:
-                tarifa = Tarifa.objects.filter(
-                    categoria=cat,
-                    dataInicio__lte=current,
-                    dataFim__gte=current,
-                ).order_by('-dataInicio').first()
-
-                valor_total += tarifa.valorDiaria if tarifa else cat.precoBase
-                current += timedelta(days=1)
+            valor_total = calcular_valor_total(cat, data_entrada, data_saida)
 
             results.append({
                 'id': cat.id,
@@ -388,6 +377,17 @@ class ReservaCheckOutView(generics.UpdateAPIView):
             fechar_conta(reserva)
             enviar_email_checkout_reserva(reserva)
         return Response(ReservaSerializer(reserva).data)
+
+
+class ReservaContaView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        reserva = get_object_or_404(Reserva, pk=kwargs['pk'])
+        if not hasattr(reserva, 'conta'):
+            return Response({'detail': 'Reserva não possui conta aberta.'}, status=status.HTTP_404_NOT_FOUND)
+        from financeiro.serializers import ContaSerializer
+        return Response(ContaSerializer(reserva.conta).data)
 
 
 class PainelDoDiaView(generics.GenericAPIView):
