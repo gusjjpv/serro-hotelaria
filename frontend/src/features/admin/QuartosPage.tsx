@@ -280,22 +280,48 @@ export function QuartosPage() {
                       <span className="text-sm text-gray-600">{getCategoriaNome(q.categoria)}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <select
-                        value={q.status}
-                        onChange={e => handleStatusChange(q.id, e.target.value as StatusQuarto)}
-                        disabled={updatingStatus[q.id]}
-                        className={cn(
-                          'cursor-pointer rounded-lg border-0 px-2.5 py-1 text-xs font-semibold focus:ring-2 focus:ring-primary-500/40 focus:outline-none',
-                          updatingStatus[q.id] && 'opacity-50',
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          'inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold',
                           StatusQuartoColors[q.status],
-                        )}
-                      >
-                        {statusOptions
-                          .filter(s => allowedTransitions[q.status]?.includes(s.value as StatusQuarto))
-                          .map(s => (
-                            <option key={s.value} value={s.value}>{s.label}</option>
-                          ))}
-                      </select>
+                        )}>
+                          {StatusQuartoLabels[q.status]}
+                        </span>
+                        <div className="flex gap-1">
+                          {q.status === 'DISP' && (
+                            <button
+                              onClick={() => handleStatusChange(q.id, 'OCUP')}
+                              disabled={updatingStatus[q.id]}
+                              className="flex h-6 w-6 items-center justify-center rounded-md bg-green-100 text-green-600 hover:bg-green-200 text-[10px] font-bold transition-colors disabled:opacity-50"
+                              title="Ocupar"
+                            >O</button>
+                          )}
+                          {q.status === 'OCUP' && (
+                            <button
+                              onClick={() => handleStatusChange(q.id, 'LIMP')}
+                              disabled={updatingStatus[q.id]}
+                              className="flex h-6 w-6 items-center justify-center rounded-md bg-yellow-100 text-yellow-600 hover:bg-yellow-200 text-[10px] font-bold transition-colors disabled:opacity-50"
+                              title="Limpeza"
+                            >L</button>
+                          )}
+                          {q.status === 'LIMP' && (
+                            <button
+                              onClick={() => handleStatusChange(q.id, 'DISP')}
+                              disabled={updatingStatus[q.id]}
+                              className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200 text-[10px] font-bold transition-colors disabled:opacity-50"
+                              title="Disponibilizar"
+                            >D</button>
+                          )}
+                          {q.status !== 'MANU' && (
+                            <button
+                              onClick={() => handleStatusChange(q.id, 'MANU')}
+                              disabled={updatingStatus[q.id]}
+                              className="flex h-6 w-6 items-center justify-center rounded-md bg-red-100 text-red-500 hover:bg-red-200 text-[10px] font-bold transition-colors disabled:opacity-50"
+                              title="Manutenção"
+                            >M</button>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-xs text-muted">
