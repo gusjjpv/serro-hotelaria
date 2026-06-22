@@ -19,6 +19,13 @@ import { HotelPage } from '@/features/admin/HotelPage'
 import { CategoriasPage } from '@/features/admin/CategoriasPage'
 import { QuartosPage } from '@/features/admin/QuartosPage'
 import { TarifasPage } from '@/features/admin/TarifasPage'
+import { MinhasReservasPage } from '@/features/hospede/MinhasReservasPage'
+import { PainelCheckInPage } from '@/features/admin/PainelCheckInPage'
+import { ContaPage } from '@/features/admin/ContaPage'
+import { ExtratoPage } from '@/features/hospede/ExtratoPage'
+import { ManutencaoPage } from '@/features/admin/ManutencaoPage'
+import { RelatorioFaturamentoPage } from '@/features/admin/RelatorioFaturamentoPage'
+import { CheckInOnlinePage } from '@/features/hospede/CheckInOnlinePage'
 import { AuthGuard } from '@/features/shared/AuthGuard'
 
 function RoleDashboard() {
@@ -94,6 +101,18 @@ export const router = createBrowserRouter([
         element: <ProfilePage />,
       },
       {
+        path: 'minhas-reservas',
+        element: <MinhasReservasPage />,
+      },
+      {
+        path: 'checkin',
+        element: <CheckInOnlinePage />,
+      },
+      {
+        path: 'extrato',
+        element: <ExtratoPage />,
+      },
+      {
         path: 'admin/funcionarios',
         element: <FuncionariosPage />,
       },
@@ -116,6 +135,22 @@ export const router = createBrowserRouter([
       {
         path: 'admin/tarifas',
         element: <TarifasPage />,
+      },
+      {
+        path: 'admin/checkin',
+        element: <PainelCheckInPage />,
+      },
+      {
+        path: 'admin/consumo',
+        element: <ContaPage />,
+      },
+      {
+        path: 'admin/manutencao',
+        element: <ManutencaoPage />,
+      },
+      {
+        path: 'admin/relatorios',
+        element: <RelatorioFaturamentoPage />,
       },
     ],
   },
