@@ -16,7 +16,7 @@ import {
 
 const quickActions = [
   { label: 'Nova Reserva', icon: CalendarCheck, color: 'bg-blue-500', href: '#', comingSoon: true },
-  { label: 'Check-in Online', icon: BedDouble, color: 'bg-green-500', href: '#', comingSoon: true },
+  { label: 'Check-in Online', icon: BedDouble, color: 'bg-green-500', href: '/app/checkin', comingSoon: false },
   { label: 'Ver Extrato', icon: ClipboardList, color: 'bg-purple-500', href: '#', comingSoon: true },
   { label: 'Serviços', icon: ShoppingCart, color: 'bg-orange-500', href: '#', comingSoon: true },
 ]
@@ -46,15 +46,15 @@ export function HospedeDashboard() {
     >
       {/* Welcome */}
       <motion.div variants={item}>
-        <Card className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 text-white">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-          <div className="relative">
-            <h1 className="text-2xl font-bold">
-              Bem-vindo, {user?.first_name}!
+        <Card className="relative overflow-hidden bg-gray-900 text-white min-h-[240px] flex items-center rounded-3xl shadow-2xl">
+          <img src="/hotel-pool.png" alt="Relax" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-900/90 via-primary-800/80 to-transparent" />
+          <div className="relative z-10 px-4 md:px-8">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight drop-shadow-md">
+              Bem-vindo(a), {user?.first_name}!
             </h1>
-            <p className="text-primary-100 mt-2 max-w-lg">
-              Gerencie sua estadia, faça check-in, solicite serviços e acompanhe suas despesas em tempo real.
+            <p className="text-gray-100 mt-3 max-w-xl font-medium text-lg drop-shadow-sm">
+              Gerencie sua estadia, faça check-in online, solicite serviços premium e acompanhe suas despesas em tempo real.
             </p>
           </div>
         </Card>
