@@ -64,14 +64,13 @@ export function ContaPage() {
     setSelectedReserva(r)
     setExtratoLoading(true)
     setError('')
-    const id = prompt('Informe o ID da conta para ver o extrato:')
-    if (!id) { setExtratoLoading(false); return }
     try {
-      const data = await contaService.getExtrato(Number(id))
+      const conta = await reservaService.getContaDaReserva(r.id)
+      setContaId(String(conta.id))
+      const data = await contaService.getExtrato(conta.id)
       setExtrato(data)
-      setContaId(id)
     } catch {
-      setError('Erro ao carregar extrato da conta.')
+      setError('Esta reserva ainda não possui conta aberta.')
     } finally {
       setExtratoLoading(false)
     }
@@ -183,12 +182,12 @@ export function ContaPage() {
             <h3 className="font-semibold text-gray-900 mb-4">Lançar Despesa</h3>
 
             <div className="space-y-4">
-              <Input
-                label="ID da Conta"
-                placeholder="Informe o ID da conta"
-                value={contaId}
-                onChange={e => setContaId(e.target.value)}
-              />
+              {contaId && (
+                <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-2.5">
+                  <p className="text-xs text-muted">Conta</p>
+                  <p className="text-sm font-medium text-gray-900">#{contaId}</p>
+                </div>
+              )}
 
               <Input
                 label="Descrição"

@@ -10,6 +10,7 @@ import { HotelDetailPage } from '@/features/public/HotelDetailPage'
 import { ResultadosPage } from '@/features/public/ResultadosPage'
 import { CheckoutPage } from '@/features/public/CheckoutPage'
 import { ReservaSucessoPage } from '@/features/public/ReservaSucessoPage'
+import { SaaSLandingPage } from '@/features/public/SaaSLandingPage'
 import { HospedeDashboard } from '@/features/hospede/HospedeDashboard'
 import { AdminDashboard } from '@/features/admin/AdminDashboard'
 import { ProfilePage } from '@/features/shared/ProfilePage'
@@ -65,6 +66,10 @@ export const router = createBrowserRouter([
       {
         path: '/',
         element: <LandingPage />,
+      },
+      {
+        path: '/para-hoteis',
+        element: <SaaSLandingPage />,
       },
       {
         path: 'hoteis/:id',

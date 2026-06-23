@@ -13,7 +13,7 @@ from .service import adicionar_despesa, obter_extrato
 
 class DespesaCreateView(generics.CreateAPIView):
     serializer_class = DespesaCreateSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAtendente]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

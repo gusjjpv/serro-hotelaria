@@ -201,21 +201,21 @@ export function QuartosPage() {
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-4 mb-2">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar por número..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="block w-full rounded-xl border-2 border-gray-200 pl-10 pr-4 py-2.5 text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
+            className="block w-full rounded-2xl border-0 py-3.5 pl-12 pr-4 text-gray-900 shadow-[0_2px_10px_rgb(0,0,0,0.04)] ring-1 ring-inset ring-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 transition-all"
           />
         </div>
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm text-gray-900 transition-all duration-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
+          className="rounded-2xl border-0 py-3.5 pl-4 pr-10 text-gray-900 shadow-[0_2px_10px_rgb(0,0,0,0.04)] ring-1 ring-inset ring-gray-100 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 transition-all font-medium"
         >
           <option value="">Todos os status</option>
           {statusOptions.map(s => (
@@ -228,31 +228,31 @@ export function QuartosPage() {
         <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>
       )}
 
-      <Card className="overflow-hidden !p-0">
+      <Card className="overflow-hidden !p-0 border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Quarto</th>
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Andar</th>
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Categoria</th>
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Status</th>
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Última alteração</th>
-                <th className="text-right text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Ações</th>
+              <tr className="bg-gray-50/80 border-b border-gray-100">
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Quarto</th>
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Andar</th>
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</th>
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Última alteração</th>
+                <th className="px-6 py-5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50 bg-white">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     {Array.from({ length: 6 }).map((_, j) => (
-                      <td key={j} className="px-6 py-4"><div className="skeleton h-5 w-full" /></td>
+                      <td key={j} className="px-6 py-5"><div className="skeleton h-5 w-full rounded-md" /></td>
                     ))}
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted">
+                  <td colSpan={6} className="px-6 py-16 text-center text-gray-400 font-medium">
                     Nenhum quarto encontrado
                   </td>
                 </tr>
@@ -263,7 +263,7 @@ export function QuartosPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-gray-50/80 transition-colors group"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

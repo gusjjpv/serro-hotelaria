@@ -1,6 +1,7 @@
 import { hotelApi } from '@/services/api'
 import type { Reserva, ReservaCreateRequest } from '@/types/reserva'
 import type { PainelDoDia } from '@/types/dashboard'
+import type { Conta } from '@/types/conta'
 
 export async function createReserva(data: ReservaCreateRequest & { valorTotal?: number }) {
   return hotelApi.post('reservas/', { json: data }).json<Reserva>()
@@ -32,4 +33,8 @@ export async function checkOut(id: number) {
 
 export async function getPainelDoDia() {
   return hotelApi.get('reservas/painel-do-dia/').json<PainelDoDia>()
+}
+
+export async function getContaDaReserva(reservaId: number) {
+  return hotelApi.get(`reservas/${reservaId}/conta/`).json<Conta>()
 }

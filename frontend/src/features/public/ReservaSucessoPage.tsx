@@ -40,13 +40,6 @@ export function ReservaSucessoPage() {
             <CalendarCheck className="h-4 w-4" />
             Minhas Reservas
           </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-6 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            <Home className="h-4 w-4" />
-            Voltar para o início
-          </Link>
         </div>
       </motion.div>
     </div>

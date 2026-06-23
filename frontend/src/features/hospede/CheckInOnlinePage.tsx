@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card } from '@/features/shared/Card'
 import { Button } from '@/features/shared/Button'
+import { Modal } from '@/features/shared/Modal'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import * as reservaService from '@/services/endpoints/reserva'
 import type { Reserva } from '@/types/reserva'
@@ -23,6 +24,8 @@ export function CheckInOnlinePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [checkinId, setCheckinId] = useState<number | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmReserva, setConfirmReserva] = useState<Reserva | null>(null)
 
   const loadReservas = async () => {
     try {
@@ -37,23 +40,30 @@ export function CheckInOnlinePage() {
 
   useEffect(() => { loadReservas() }, [])
 
-  const handleCheckIn = async (id: number) => {
-    if (!window.confirm('Realizar check-in online para esta reserva?')) return
-    setCheckinId(id)
+  const handleCheckIn = async (r: Reserva) => {
+    setConfirmReserva(r)
+    setConfirmOpen(true)
+  }
+
+  const confirmCheckIn = async () => {
+    if (!confirmReserva) return
+    setCheckinId(confirmReserva.id)
+    setConfirmOpen(false)
     setError('')
     setSuccess('')
     try {
-      await reservaService.checkInOnline(id)
+      await reservaService.checkInOnline(confirmReserva.id)
       setSuccess('Check-in realizado com sucesso!')
       loadReservas()
     } catch {
       setError('Erro ao realizar check-in. Verifique se está dentro do prazo (24h antes da entrada).')
     } finally {
       setCheckinId(null)
+      setConfirmReserva(null)
     }
   }
 
-  const disponibles = reservas.filter(r => r.status === 'CONF')
+  const disponibles = reservas.filter(r => r.status === 'PEND' || r.status === 'CONF')
 
   return (
     <motion.div
@@ -105,47 +115,54 @@ export function CheckInOnlinePage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <Card className="hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-                        <Hotel className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{r.hotel_nome}</h3>
-                        <span className="text-sm text-muted font-mono">{r.codigo}</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <BedDouble className="h-4 w-4 text-gray-400" />
-                        {r.categoria_nome}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        {formatDate(r.dataEntrada)} - {formatDate(r.dataSaida)}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        {r.numHospedes} hóspede{r.numHospedes > 1 ? 's' : ''}
-                      </div>
+              <Card className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-0 overflow-hidden border-0 shadow-lg shadow-gray-200/50">
+                <div className="flex flex-col sm:flex-row">
+                  <div className="sm:w-56 h-40 sm:h-auto shrink-0 relative">
+                    <img src="/hotel-facade.png" alt="Hotel" className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent sm:hidden" />
+                    <div className="absolute top-3 left-3 sm:hidden">
+                      <span className="text-white font-mono bg-black/50 backdrop-blur-md px-2 py-1 rounded-md text-xs">{r.codigo}</span>
                     </div>
                   </div>
+                  <div className="flex-1 p-5 sm:p-6 flex flex-col justify-between bg-white">
+                    <div className="flex items-start justify-between gap-4 mb-5">
+                      <div>
+                        <h3 className="font-extrabold text-xl text-gray-900">{r.hotel_nome}</h3>
+                        <span className="hidden sm:inline-block text-sm text-primary-700 font-mono bg-primary-50 border border-primary-100 px-2.5 py-1 rounded-md mt-1">{r.codigo}</span>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wider shadow-sm ${StatusReservaColors[r.status]}`}>
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          {StatusReservaLabels[r.status]}
+                        </span>
+                      </div>
+                    </div>
 
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold ${StatusReservaColors[r.status]}`}>
-                      <CheckCircle className="h-3 w-3" />
-                      {StatusReservaLabels[r.status]}
-                    </span>
-                    <Button
-                      isLoading={checkinId === r.id}
-                      onClick={() => handleCheckIn(r.id)}
-                    >
-                      <LogIn className="h-4 w-4" />
-                      Fazer Check-in
-                    </Button>
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 text-sm bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-5">
+                      <div className="flex items-center gap-2.5 text-gray-700 font-medium">
+                        <BedDouble className="h-5 w-5 text-primary-500" />
+                        <span className="truncate">{r.categoria_nome}</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-gray-700 font-medium">
+                        <Calendar className="h-5 w-5 text-primary-500" />
+                        <span className="truncate">{formatDate(r.dataEntrada)} - {formatDate(r.dataSaida)}</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-gray-700 font-medium">
+                        <Users className="h-5 w-5 text-primary-500" />
+                        <span>{r.numHospedes} hóspede{r.numHospedes > 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end border-t border-gray-50 pt-4">
+                      <Button
+                        isLoading={checkinId === r.id}
+                        onClick={() => handleCheckIn(r)}
+                        className="px-8 h-12 text-lg rounded-xl shadow-lg shadow-primary-500/30 font-bold"
+                      >
+                        <LogIn className="h-5 w-5" />
+                        Fazer Check-in Agora
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </Card>
@@ -153,6 +170,27 @@ export function CheckInOnlinePage() {
           ))}
         </div>
       )}
+
+      <Modal isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirmar Check-in">
+        <div className="p-6">
+          <p className="text-gray-600 mb-6">
+            Deseja realmente realizar o check-in para a reserva <strong className="text-gray-900">{confirmReserva?.codigo}</strong>?
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              isLoading={checkinId === confirmReserva?.id}
+              onClick={confirmCheckIn}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <LogIn className="h-4 w-4" />
+              Confirmar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   )
 }

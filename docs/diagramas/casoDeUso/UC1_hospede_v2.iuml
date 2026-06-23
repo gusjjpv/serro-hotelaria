@@ -1,0 +1,25 @@
+@startuml
+left to right direction
+
+actor "Usuário" as usuario
+actor "Hóspede" as hospede
+
+rectangle "Caso de uso - Hóspede"{
+    usecase "Visualizar Disponibilidade de Quartos" as visualizar_disponibilidade
+    usecase "Verificar Disponibilidade" as verificar_disponibilidade
+    usecase "Realizar reserva" as realizar_reserva
+    usecase "Cancelar reserva" as cancelar_reserva
+    usecase "Realizar Check-in" as realizar_checkin
+    usecase "Consultar Extrato de Consumo" as consultar_extrato
+}
+
+usuario -- visualizar_disponibilidade
+usuario -- realizar_reserva
+realizar_reserva ..> verificar_disponibilidade : <<include>>
+hospede -- cancelar_reserva
+hospede -- realizar_checkin
+hospede -- consultar_extrato
+
+usuario <|-up- hospede
+
+@enduml

@@ -84,60 +84,81 @@ export function AdminDashboard() {
         </div>
       ) : data ? (
         <>
-          <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="relative overflow-hidden">
-              <div className="flex items-start justify-between">
+          <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <Card className="relative overflow-hidden border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6 group">
+              <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-blue-100 to-transparent rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700" />
+              <div className="flex items-start justify-between relative z-10">
                 <div>
-                  <p className="text-sm text-muted">Quartos Ocupados</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {data.metricas.quartosOcupados}/{data.metricas.quartosTotal}
+                  <p className="text-xs text-gray-500 font-bold tracking-widest uppercase">Quartos Ocupados</p>
+                  <p className="text-3xl font-extrabold text-gray-900 mt-2">
+                    {data.metricas.quartosOcupados}<span className="text-xl text-gray-400 font-medium">/{data.metricas.quartosTotal}</span>
                   </p>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white">
-                  <BedDouble className="h-5 w-5" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                  <BedDouble className="h-6 w-6" />
                 </div>
               </div>
-              <p className="text-xs text-muted mt-3">
-                {data.metricas.quartosDisponiveis} disponíveis
-              </p>
+              <div className="mt-5 relative z-10">
+                <p className="text-xs text-blue-700 font-bold bg-blue-50 inline-block px-2.5 py-1.5 rounded-lg border border-blue-100">
+                  {data.metricas.quartosDisponiveis} Quartos Disponíveis
+                </p>
+              </div>
             </Card>
-            <Card className="relative overflow-hidden">
-              <div className="flex items-start justify-between">
+
+            <Card className="relative overflow-hidden border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6 group">
+              <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-green-100 to-transparent rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700" />
+              <div className="flex items-start justify-between relative z-10">
                 <div>
-                  <p className="text-sm text-muted">Check-ins Hoje</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{data.metricas.checkinsPendentes}</p>
+                  <p className="text-xs text-gray-500 font-bold tracking-widest uppercase">Check-ins Hoje</p>
+                  <p className="text-3xl font-extrabold text-gray-900 mt-2">{data.metricas.checkinsPendentes}</p>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500 text-white">
-                  <CalendarCheck className="h-5 w-5" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-green-600">
+                  <CalendarCheck className="h-6 w-6" />
                 </div>
               </div>
-              <p className="text-xs text-muted mt-3">Pendentes</p>
+              <div className="mt-5 relative z-10">
+                <p className="text-xs text-green-700 font-bold bg-green-50 inline-block px-2.5 py-1.5 rounded-lg border border-green-100">
+                  Aguardando Chegada
+                </p>
+              </div>
             </Card>
-            <Card className="relative overflow-hidden">
-              <div className="flex items-start justify-between">
+
+            <Card className="relative overflow-hidden border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6 group">
+              <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-orange-100 to-transparent rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700" />
+              <div className="flex items-start justify-between relative z-10">
                 <div>
-                  <p className="text-sm text-muted">Check-outs Hoje</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{data.metricas.checkoutsPendentes}</p>
+                  <p className="text-xs text-gray-500 font-bold tracking-widest uppercase">Check-outs Hoje</p>
+                  <p className="text-3xl font-extrabold text-gray-900 mt-2">{data.metricas.checkoutsPendentes}</p>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 text-white">
-                  <Users className="h-5 w-5" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                  <Users className="h-6 w-6" />
                 </div>
               </div>
-              <p className="text-xs text-muted mt-3">Até 12h</p>
+              <div className="mt-5 relative z-10">
+                <p className="text-xs text-orange-700 font-bold bg-orange-50 inline-block px-2.5 py-1.5 rounded-lg border border-orange-100">
+                  Previsão de Saída
+                </p>
+              </div>
             </Card>
-            <Card className="relative overflow-hidden">
-              <div className="flex items-start justify-between">
+
+            <Card className="relative overflow-hidden border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6 group bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+              <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700" />
+              <div className="flex items-start justify-between relative z-10">
                 <div>
-                  <p className="text-sm text-muted">Faturamento Hoje</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                  <p className="text-xs text-gray-400 font-bold tracking-widest uppercase">Faturamento Hoje</p>
+                  <p className="text-3xl font-extrabold text-white mt-2">
                     {formatCurrency(Number(data.metricas.faturamentoDoDia))}
                   </p>
                 </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500 text-white">
-                  <DollarSign className="h-5 w-5" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-primary-300 backdrop-blur-md">
+                  <DollarSign className="h-6 w-6" />
                 </div>
               </div>
-              <p className="text-xs text-muted mt-3">Receita do dia</p>
+              <div className="mt-5 relative z-10">
+                <p className="text-xs text-primary-300 font-bold bg-white/5 inline-block px-2.5 py-1.5 rounded-lg border border-white/10">
+                  Receita acumulada do dia
+                </p>
+              </div>
             </Card>
           </motion.div>
 

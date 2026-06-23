@@ -1,0 +1,332 @@
+@startuml
+hide empty members
+
+skinparam nodesep 65
+skinparam ranksep 110
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+skinparam class {
+    BackgroundColor White
+    BorderColor #4A4A4A
+    HeaderFontColor White
+    FontColor #2C2C2C
+    ArrowColor #4A4A4A
+    BorderThickness 1.5
+}
+
+skinparam package {
+    BorderColor #888888
+    BorderThickness 1.5
+    FontStyle bold
+    FontSize 13
+}
+
+skinparam enum {
+    BackgroundColor #FFF8E1
+    BorderColor #F9A825
+    HeaderBackgroundColor #F9A825
+    HeaderFontColor White
+}
+
+' ─────────────────────────────────────────
+package "Controle de Acesso" #EEF2FF {
+
+    abstract class Usuario {
+        - id : Integer
+        - primeiroNome : String
+        - ultimoNome : String
+        - email : String
+        - telefone : String
+        - username : String
+        - senha : String
+        - dataNascimento : Date
+        - genero : String
+        - endereco : Endereco
+        - cpf : String
+        - role : Role
+        ..
+        + cadastrar() : void
+        + login() : Token
+        + logout() : void
+        + atualizarDados() : void
+    }
+
+    class Endereco {
+        - rua : String
+        - numero : String
+        - complemento : String
+        - bairro : String
+        - cidade : String
+        - estado : String
+        - cep : String
+    }
+
+    class Hospede {
+        - pontosFidelidade : Integer
+        ..
+        + realizarCheckInOnline(reserva : Reserva) : void
+        + cancelarReserva(reserva : Reserva) : void
+        + consultarExtrato() : Conta
+        + consultarHistoricoEstadias() : List<Reserva>
+    }
+
+    class Atendente {
+        - numeroDeCadastro : String
+        ..
+        + realizarCheckInPresencial(reserva : Reserva) : void
+        + realizarCheckOut(reserva : Reserva) : void
+        + atualizarStatusQuarto(quarto : Quarto, status : StatusQuarto) : void
+        + lancarDespesaNaConta(conta : Conta, despesa : Despesa) : void
+        + visualizarExtratoHospede(hospede : Hospede) : Conta
+    }
+
+    class Supervisor {
+        ..
+        + bloquearQuarto(quarto : Quarto, manutencao : Manutencao) : void
+        + desbloquearQuarto(quarto : Quarto) : void
+        + gerenciarQuartos() : void
+        + gerenciarCategoriasAcomodacao() : void
+    }
+
+    class Gestor {
+        ..
+        + consultarDashboard() : Dashboard
+        + emitirRelatorioFaturamento(dataInicio : Date, dataFim : Date) : Relatorio
+        + gerenciarTarifas() : void
+        + gerenciarHospedes() : void
+    }
+
+    enum Role {
+        HOSPEDE
+        ATENDENTE
+        SUPERVISOR
+        GESTOR
+    }
+
+    Usuario    <|-- Hospede
+    Usuario    <|-- Atendente
+    Usuario    <|-- Supervisor
+    Supervisor <|-- Gestor
+    Role       <.. Usuario : define >
+    Usuario  -->  Endereco : possui >
+}
+
+' ─────────────────────────────────────────
+package "Hospedagem e Infraestrutura" #E8F5E9 {
+
+    class Hotel {
+        - id : Integer
+        - nome : String
+        - cnpj : String
+        - endereco : Endereco
+        - telefoneContato : String
+        - emailContato : String
+        ..
+        + atualizarDados() : void
+    }
+
+    class CategoriaQuarto {
+        - id : Integer
+        - nome : String
+        - descricao : String
+        - capacidade : Integer
+        - precoBase : Decimal
+        ..
+        + criar() : void
+        + atualizar() : void
+        + remover() : void
+        + obterTarifaVigente(data : Date) : Tarifa
+    }
+
+    class Quarto {
+        - id : Integer
+        - numero : String
+        - andar : Integer
+        - status : StatusQuarto
+        - dataAlteracao : DateTime
+        - usuarioAlteracao : Usuario
+        ..
+        + cadastrar() : void
+        + atualizarStatus(novoStatus : StatusQuarto) : void
+        + consultarDisponibilidade(dataInicio : Date, dataFim : Date) : boolean
+        + estaBloqueado(data : Date) : boolean
+    }
+
+    class Reserva {
+        - id : Integer
+        - codigo : String
+        - dataEntrada : Date
+        - dataSaida : Date
+        - status : StatusReserva
+        - numHospedes : Integer
+        - valorTotal : Decimal
+        - observacoes : String
+        - identidadeVerificada : Boolean
+        ..
+        + criar() : void
+        + cancelar() : void
+        + confirmar() : void
+        + realizarCheckIn() : void
+        + realizarCheckOut() : void
+        + calcularValorTotal() : Decimal
+        + verificarDisponibilidade() : boolean
+    }
+
+    enum StatusQuarto {
+        DISPONIVEL
+        OCUPADO
+        LIMPEZA
+        MANUTENCAO
+    }
+
+    enum StatusReserva {
+        PENDENTE
+        CONFIRMADA
+        CHECK_IN
+        FINALIZADA
+        CANCELADA
+    }
+
+    Hotel "1" o-- "1..*" Quarto : possui >
+
+    Hotel "1" --> "1" Endereco : localizado em >
+    Quarto "*" --> "1" CategoriaQuarto : pertence a >
+    Reserva "*" --> "0..1" Quarto : aloca >
+
+    StatusQuarto <.. Quarto
+    StatusReserva <.right. Reserva
+}
+
+' ─────────────────────────────────────────
+package "Financeiro" #FFF3E0 {
+
+    class Conta {
+        - id : Integer
+        - dataAbertura : DateTime
+        - dataFechamento : DateTime
+        - totalAcumulado : Decimal
+        - status : StatusConta
+        - nomeTitular : String
+        - cpfTitular : String
+        ..
+        + abrir() : void
+        + fechar() : void
+        + adicionarDespesa(despesa : Despesa) : void
+        + calcularTotal() : Decimal
+        + obterExtrato() : List<Despesa>
+    }
+
+    class Despesa {
+        - id : Integer
+        - descricao : String
+        - valor : Decimal
+        - categoria : CategoriaDespesa
+        - dataHora : DateTime
+        ..
+        + criar() : void
+        + calcularSubtotal() : Decimal
+    }
+
+    class Produto {
+        - id : Integer
+        - nome : String
+        - descricao : String
+        - categoria : String
+        - precoAtual : Decimal
+        - ativo : Boolean
+        ..
+        + cadastrar() : void
+        + atualizar() : void
+        + desativar() : void
+    }
+
+    enum StatusConta {
+        ABERTA
+        PAGA
+        FECHADA
+        CANCELADA
+    }
+
+    enum CategoriaDespesa {
+        FRIGOBAR
+        SERVICO_QUARTO
+        SPA
+        OUTROS
+    }
+
+    Conta "1" o-- "0..*" Despesa : contém >
+
+    Despesa "*" -right-> "0..1" Produto : referencia >
+
+    Conta .left.> StatusConta
+    Despesa .left.> CategoriaDespesa
+}
+
+package "Tarifas e Manutenção" #F3E5F5 {
+
+    class Tarifa {
+        - id : Integer
+        - valorDiaria : Decimal
+        - dataInicio : Date
+        - dataFim : Date
+        - tipoTemporada : TipoTemporada
+        ..
+        + criar() : void
+        + atualizar() : void
+        + remover() : void
+        + estaVigente(data : Date) : boolean
+    }
+
+    class Manutencao {
+        - id : Integer
+        - dataInicio : Date
+        - dataFim : Date
+        - motivo : MotivoManutencao
+        - descricao : String
+        - status : StatusManutencao
+        - statusAnterior : String
+        ..
+        + criar() : void
+        + finalizar() : void
+        + cancelar() : void
+    }
+
+    enum TipoTemporada {
+        ALTA
+        BAIXA
+    }
+
+    enum MotivoManutencao {
+        PREVENTIVA
+        CORRETIVA
+        LIMPEZA
+    }
+
+    enum StatusManutencao {
+        AGENDADA
+        EM_ANDAMENTO
+        CONCLUIDA
+        CANCELADA
+    }
+
+    TipoTemporada    <.. Tarifa
+    MotivoManutencao <.left. Manutencao
+    StatusManutencao <.. Manutencao
+}
+
+
+    Reserva    "*"   -->  "1"    Usuario      : solicitada por >
+    Reserva    "1"   -->  "0..1" Conta        : gera >
+    Supervisor "*"   -->  "1"    Hotel        : administra >
+    Atendente  "*"   -->  "1"    Hotel        : trabalha no >
+    CategoriaQuarto "1" --> "1..*" Tarifa     : possui >
+    Manutencao "*" --> "1" Quarto : referente ao >
+    Manutencao "*" -right->  "1" Hotel : pertence ao >
+
+    Hotel "1" o-up- "0..*" Manutencao : gerencia >
+
+@enduml

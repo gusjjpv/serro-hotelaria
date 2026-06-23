@@ -1,0 +1,61 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam maxmessagesize 150
+
+skinparam sequence {
+    LifeLineBorderColor #4A4A4A
+    LifeLineBackgroundColor #F9F9F9
+    GroupBorderColor #000000
+    GroupHeaderFontColor Black
+    GroupHeaderBackgroundColor #1565C0
+    ActorBorderColor #4A4A4A
+    ParticipantBorderColor #4A4A4A
+    ParticipantBackgroundColor White
+}
+
+actor "Usuário" as user
+boundary "view : TelaLogin" as tela
+control "ctrl : LoginView" as ctrl
+control "serializer : LoginSerializer" as serializer
+database "db : BancoDeDados" as db
+
+user -> tela : 1. acessarTelaLogin()
+activate tela
+tela -->> user : exibirFormularioLogin()
+
+user -> tela : 2. informarCredenciais(email, senha)
+tela -> ctrl : 3. autenticar(email, senha)
+activate ctrl
+
+ctrl -> serializer : 4. validar(credenciais)
+activate serializer
+
+serializer -> db : 5. buscarUsuarioPorEmail(email)
+activate db
+db -->> serializer : 6. usuarioDados (ou nulo)
+deactivate db
+
+serializer -> serializer : 7. validarCredenciais(senha, hashBanco)
+
+alt E01: Credenciais Inválidas
+    serializer -->> ctrl : erro("E-mail ou senha incorretos")
+    ctrl -->> tela : erro(401)
+    tela -->> user : exibirMensagemErro()
+
+else P01: Autenticação Aprovada
+    serializer -> serializer : 8. adicionarRoleAoToken(role)
+    serializer -> serializer : 9. gerarTokens()
+
+    serializer -->> ctrl : 10. access_token, refresh_token
+    deactivate serializer
+
+    ctrl -->> tela : 11. loginRealizado(tokens)
+    deactivate ctrl
+
+    tela -->> user : 12. redirecionarParaDashboard(role)
+end
+
+deactivate tela
+
+@enduml
