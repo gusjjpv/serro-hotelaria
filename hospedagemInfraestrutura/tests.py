@@ -317,10 +317,10 @@ class CategoriaQuartoAPITest(BaseAPITest):
         response = self.client.get('/api/categorias/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_list_categorias_atendente_forbidden(self):
+    def test_list_categorias_atendente(self):
         self.auth(self.atendente_token)
         response = self.client.get('/api/categorias/')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_list_categorias_hospede_forbidden(self):
         self.auth(self.hospede_token)

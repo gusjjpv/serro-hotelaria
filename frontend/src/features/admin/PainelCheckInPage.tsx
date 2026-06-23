@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card } from '@/features/shared/Card'
 import { Button } from '@/features/shared/Button'
-import { Input } from '@/features/shared/Input'
+import { Modal } from '@/features/shared/Modal'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import * as reservaService from '@/services/endpoints/reserva'
 import type { PainelDoDia, PainelDoDiaItem } from '@/types/dashboard'
@@ -22,8 +22,11 @@ export function PainelCheckInPage() {
   const [painel, setPainel] = useState<PainelDoDia | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [actionLoading, setActionLoading] = useState(false)
+  const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set())
   const [success, setSuccess] = useState('')
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmItem, setConfirmItem] = useState<PainelDoDiaItem | null>(null)
+  const [confirmType, setConfirmType] = useState<'checkin' | 'checkout'>('checkin')
 
   const loadPainel = async () => {
     try {
@@ -39,35 +42,38 @@ export function PainelCheckInPage() {
 
   useEffect(() => { loadPainel() }, [])
 
-  const handleCheckIn = async (id: number) => {
-    if (!window.confirm('Realizar check-in presencial para esta reserva?')) return
-    setActionLoading(true)
-    setError('')
-    setSuccess('')
-    try {
-      await reservaService.checkInPresencial(id, { identidadeVerificada: true })
-      setSuccess('Check-in realizado com sucesso!')
-      loadPainel()
-    } catch {
-      setError('Erro ao realizar check-in.')
-    } finally {
-      setActionLoading(false)
-    }
+  const handleCheckIn = async (item: PainelDoDiaItem) => {
+    setConfirmItem(item)
+    setConfirmType('checkin')
+    setConfirmOpen(true)
   }
 
-  const handleCheckOut = async (id: number) => {
-    if (!window.confirm('Realizar check-out para esta reserva?')) return
-    setActionLoading(true)
+  const handleCheckOut = async (item: PainelDoDiaItem) => {
+    setConfirmItem(item)
+    setConfirmType('checkout')
+    setConfirmOpen(true)
+  }
+
+  const confirmAction = async () => {
+    if (!confirmItem) return
+    setLoadingIds(prev => new Set(prev).add(confirmItem.id))
+    setConfirmOpen(false)
     setError('')
     setSuccess('')
     try {
-      await reservaService.checkOut(id)
-      setSuccess('Check-out realizado com sucesso!')
+      if (confirmType === 'checkin') {
+        await reservaService.checkInPresencial(confirmItem.id, { identidadeVerificada: true })
+        setSuccess('Check-in realizado com sucesso!')
+      } else {
+        await reservaService.checkOut(confirmItem.id)
+        setSuccess('Check-out realizado com sucesso!')
+      }
       loadPainel()
     } catch {
-      setError('Erro ao realizar check-out.')
+      setError(confirmType === 'checkin' ? 'Erro ao realizar check-in.' : 'Erro ao realizar check-out.')
     } finally {
-      setActionLoading(false)
+      setLoadingIds(prev => { const next = new Set(prev); next.delete(confirmItem.id); return next })
+      setConfirmItem(null)
     }
   }
 
@@ -144,8 +150,8 @@ export function PainelCheckInPage() {
                     </div>
                     <Button
                       size="sm"
-                      isLoading={actionLoading}
-                      onClick={() => handleCheckIn(item.id)}
+                      isLoading={loadingIds.has(item.id)}
+                      onClick={() => handleCheckIn(item)}
                       className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg shadow-green-600/20 px-6 py-5 h-auto text-sm font-bold"
                     >
                       <LogIn className="h-4 w-4" />
@@ -196,8 +202,8 @@ export function PainelCheckInPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      isLoading={actionLoading}
-                      onClick={() => handleCheckOut(item.id)}
+                      isLoading={loadingIds.has(item.id)}
+                      onClick={() => handleCheckOut(item)}
                       className="w-full sm:w-auto border-gray-200 hover:bg-gray-50 text-gray-900 rounded-xl px-6 py-5 h-auto text-sm font-bold"
                     >
                       <LogOut className="h-4 w-4" />
@@ -210,6 +216,31 @@ export function PainelCheckInPage() {
           </Card>
         </div>
       )}
+
+      <Modal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title={confirmType === 'checkin' ? 'Confirmar Check-in' : 'Confirmar Check-out'}
+      >
+        <div className="p-6">
+          <p className="text-gray-600 mb-6">
+            Deseja realmente realizar o {confirmType === 'checkin' ? 'check-in' : 'check-out'} para a reserva <strong className="text-gray-900">{confirmItem?.codigo}</strong>?
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              isLoading={loadingIds.has(confirmItem?.id ?? -1)}
+              onClick={confirmAction}
+              className={confirmType === 'checkin' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-orange-600 hover:bg-orange-700 text-white'}
+            >
+              {confirmType === 'checkin' ? <LogIn className="h-4 w-4" /> : <LogOut className="h-4 w-4" />}
+              Confirmar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   )
 }

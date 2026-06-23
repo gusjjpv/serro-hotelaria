@@ -40,7 +40,7 @@ class HotelManageView(generics.RetrieveUpdateAPIView):
 
 class CategoriaQuartoListCreateView(generics.ListCreateAPIView):
     serializer_class = CategoriaQuartoSerializer
-    permission_classes = [IsAuthenticated, IsSupervisor]
+    permission_classes = [IsAuthenticated, IsAtendente]
 
     def get_queryset(self):
         user = self.request.user
@@ -70,7 +70,7 @@ class CategoriaQuartoDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class QuartoListCreateView(generics.ListCreateAPIView):
     serializer_class = QuartoSerializer
-    permission_classes = [IsAuthenticated, IsSupervisor]
+    permission_classes = [IsAuthenticated, IsAtendente]
 
     def get_queryset(self):
         user = self.request.user
@@ -89,7 +89,7 @@ class QuartoListCreateView(generics.ListCreateAPIView):
 
 class QuartoDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = QuartoSerializer
-    permission_classes = [IsAuthenticated, IsSupervisor]
+    permission_classes = [IsAuthenticated, IsAtendente]
 
     def get_queryset(self):
         user = self.request.user
@@ -382,8 +382,22 @@ class ReservaCheckOutView(generics.UpdateAPIView):
 class ReservaContaView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
+    def get_object(self):
+        user = self.request.user
+        if user.role in ('GE', 'SV', 'AT'):
+            if user.role == 'GE':
+                return get_object_or_404(
+                    Reserva, pk=self.kwargs['pk'], hotel__gestor=user,
+                )
+            return get_object_or_404(
+                Reserva, pk=self.kwargs['pk'], hotel=user.hotel,
+            )
+        return get_object_or_404(
+            Reserva, pk=self.kwargs['pk'], hospede=user,
+        )
+
     def get(self, request, *args, **kwargs):
-        reserva = get_object_or_404(Reserva, pk=kwargs['pk'])
+        reserva = self.get_object()
         if not hasattr(reserva, 'conta'):
             return Response({'detail': 'Reserva não possui conta aberta.'}, status=status.HTTP_404_NOT_FOUND)
         from financeiro.serializers import ContaSerializer

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card } from '@/features/shared/Card'
 import { Button } from '@/features/shared/Button'
+import { Modal } from '@/features/shared/Modal'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import * as reservaService from '@/services/endpoints/reserva'
 import type { Reserva } from '@/types/reserva'
@@ -23,6 +24,8 @@ export function CheckInOnlinePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [checkinId, setCheckinId] = useState<number | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmReserva, setConfirmReserva] = useState<Reserva | null>(null)
 
   const loadReservas = async () => {
     try {
@@ -37,19 +40,26 @@ export function CheckInOnlinePage() {
 
   useEffect(() => { loadReservas() }, [])
 
-  const handleCheckIn = async (id: number) => {
-    if (!window.confirm('Realizar check-in online para esta reserva?')) return
-    setCheckinId(id)
+  const handleCheckIn = async (r: Reserva) => {
+    setConfirmReserva(r)
+    setConfirmOpen(true)
+  }
+
+  const confirmCheckIn = async () => {
+    if (!confirmReserva) return
+    setCheckinId(confirmReserva.id)
+    setConfirmOpen(false)
     setError('')
     setSuccess('')
     try {
-      await reservaService.checkInOnline(id)
+      await reservaService.checkInOnline(confirmReserva.id)
       setSuccess('Check-in realizado com sucesso!')
       loadReservas()
     } catch {
       setError('Erro ao realizar check-in. Verifique se está dentro do prazo (24h antes da entrada).')
     } finally {
       setCheckinId(null)
+      setConfirmReserva(null)
     }
   }
 
@@ -146,7 +156,7 @@ export function CheckInOnlinePage() {
                     <div className="flex justify-end border-t border-gray-50 pt-4">
                       <Button
                         isLoading={checkinId === r.id}
-                        onClick={() => handleCheckIn(r.id)}
+                        onClick={() => handleCheckIn(r)}
                         className="px-8 h-12 text-lg rounded-xl shadow-lg shadow-primary-500/30 font-bold"
                       >
                         <LogIn className="h-5 w-5" />
@@ -160,6 +170,27 @@ export function CheckInOnlinePage() {
           ))}
         </div>
       )}
+
+      <Modal isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirmar Check-in">
+        <div className="p-6">
+          <p className="text-gray-600 mb-6">
+            Deseja realmente realizar o check-in para a reserva <strong className="text-gray-900">{confirmReserva?.codigo}</strong>?
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              isLoading={checkinId === confirmReserva?.id}
+              onClick={confirmCheckIn}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <LogIn className="h-4 w-4" />
+              Confirmar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   )
 }

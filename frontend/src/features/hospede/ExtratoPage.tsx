@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card } from '@/features/shared/Card'
-import { Button } from '@/features/shared/Button'
-import { Input } from '@/features/shared/Input'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import * as reservaService from '@/services/endpoints/reserva'
 import * as contaService from '@/services/endpoints/conta'
@@ -10,12 +8,10 @@ import type { Reserva } from '@/types/reserva'
 import type { Conta, Despesa } from '@/types/conta'
 import {
   ClipboardList,
-  Search,
   Receipt,
   Hotel,
   BedDouble,
   Calendar,
-  AlertCircle,
 } from 'lucide-react'
 
 export function ExtratoPage() {
@@ -23,8 +19,6 @@ export function ExtratoPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [contaData, setContaData] = useState<{ conta: Conta; despesas: Despesa[] } | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [contaIdInput, setContaIdInput] = useState('')
 
   const loadReservas = async () => {
     try {
@@ -39,21 +33,21 @@ export function ExtratoPage() {
 
   useEffect(() => { loadReservas() }, [])
 
-  const handleViewExtrato = async () => {
-    if (!contaIdInput.trim()) return
-    setBusy(true)
-    setError('')
-    try {
-      const data = await contaService.getExtrato(Number(contaIdInput))
-      setContaData(data)
-    } catch {
-      setError('Erro ao carregar extrato. Verifique o ID da conta.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const ativa = reservas.find(r => r.status === 'CHIN')
+
+  useEffect(() => {
+    if (!ativa) return
+    const loadConta = async () => {
+      try {
+        const conta = await reservaService.getContaDaReserva(ativa.id)
+        const data = await contaService.getExtrato(conta.id)
+        setContaData(data)
+      } catch {
+        // Conta ainda não existe ou erro
+      }
+    }
+    loadConta()
+  }, [ativa])
 
   return (
     <motion.div
@@ -109,27 +103,16 @@ export function ExtratoPage() {
                 </Card>
               )}
 
-              <Card className="shadow-lg shadow-gray-200/50 border-gray-100">
-                <h3 className="font-bold text-lg text-gray-900 mb-5">Consultar Outro Extrato</h3>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Digite o ID da conta (ex: 123)"
-                      value={contaIdInput}
-                      onChange={e => setContaIdInput(e.target.value)}
-                    />
-                  </div>
-                  <Button
-                    isLoading={busy}
-                    onClick={handleViewExtrato}
-                    disabled={!contaIdInput.trim()}
-                    className="h-[42px] px-6"
-                  >
-                    <Search className="h-4 w-4" />
-                    Consultar
-                  </Button>
-                </div>
-              </Card>
+              {!ativa && (
+                <Card className="text-center py-12">
+                  <ClipboardList className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="font-semibold text-gray-700">Nenhuma reserva ativa</h3>
+                  <p className="text-sm text-muted mt-2">
+                    Você não tem uma reserva ativa no momento.<br />
+                    Faça uma reserva para acompanhar seu extrato.
+                  </p>
+                </Card>
+              )}
             </div>
 
             {contaData && (
