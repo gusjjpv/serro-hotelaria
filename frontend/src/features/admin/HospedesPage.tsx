@@ -49,40 +49,40 @@ export function HospedesPage() {
       </div>
 
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
         <input
           type="text"
           placeholder="Buscar por nome ou email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="block w-full rounded-xl border-2 border-gray-200 pl-10 pr-4 py-2.5 text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none"
+          className="block w-full rounded-2xl border-0 py-3.5 pl-12 pr-4 text-gray-900 shadow-[0_2px_10px_rgb(0,0,0,0.04)] ring-1 ring-inset ring-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 transition-all"
         />
       </div>
 
-      <Card className="overflow-hidden !p-0">
+      <Card className="overflow-hidden !p-0 border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Nome</th>
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Email</th>
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Username</th>
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Status</th>
-                <th className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-6 py-4">Cadastro</th>
+              <tr className="bg-gray-50/80 border-b border-gray-100">
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Nome</th>
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Username</th>
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Cadastro</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50 bg-white">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     {Array.from({ length: 5 }).map((_, j) => (
-                      <td key={j} className="px-6 py-4"><div className="skeleton h-5 w-full" /></td>
+                      <td key={j} className="px-6 py-5"><div className="skeleton h-5 w-full rounded-md" /></td>
                     ))}
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted">
+                  <td colSpan={5} className="px-6 py-16 text-center text-gray-400 font-medium">
                     Nenhum hóspede encontrado
                   </td>
                 </tr>
@@ -93,14 +93,14 @@ export function HospedesPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-gray-50/80 transition-colors group"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 text-xs font-bold">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 text-sm font-bold uppercase tracking-wider shadow-inner">
                           {u.first_name[0]}{u.last_name[0]}
                         </div>
-                        <p className="text-sm font-medium text-gray-900">{u.first_name} {u.last_name}</p>
+                        <p className="text-sm font-bold text-gray-900">{u.first_name} {u.last_name}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">

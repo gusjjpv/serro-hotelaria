@@ -14,6 +14,13 @@ export function PublicLayout() {
           </Link>
           <div className="flex items-center gap-3">
             <Link
+              to="/para-hoteis"
+              className="hidden sm:inline-flex rounded-xl px-4 py-2 text-sm font-semibold text-primary-600 transition-colors hover:bg-primary-50"
+            >
+              Para Hotéis
+            </Link>
+            <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+            <Link
               to="/login"
               className="rounded-xl px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
             >

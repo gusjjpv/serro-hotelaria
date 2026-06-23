@@ -100,58 +100,62 @@ export function MinhasReservasPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <Card className="hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-                        <Hotel className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{r.hotel_nome}</h3>
-                        <span className="text-sm text-muted font-mono">{r.codigo}</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <BedDouble className="h-4 w-4 text-gray-400" />
-                        {r.categoria_nome}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        {formatDate(r.dataEntrada)} - {formatDate(r.dataSaida)}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        {r.numHospedes} hóspede{r.numHospedes > 1 ? 's' : ''}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <DollarSign className="h-4 w-4 text-gray-400" />
-                        {formatCurrency(r.valorTotal)}
-                      </div>
+              <Card className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 p-0 overflow-hidden border-0 shadow-lg shadow-gray-200/50">
+                <div className="flex flex-col sm:flex-row">
+                  <div className="sm:w-56 h-40 sm:h-auto shrink-0 relative">
+                    <img src="/hotel-room.png" alt="Quarto" className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent sm:hidden" />
+                    <div className="absolute top-3 left-3 sm:hidden">
+                      <span className="text-white font-mono bg-black/50 backdrop-blur-md px-2 py-1 rounded-md text-xs">{r.codigo}</span>
                     </div>
                   </div>
+                  <div className="flex-1 p-5 sm:p-6 flex flex-col justify-between bg-white">
+                    <div className="flex items-start justify-between gap-4 mb-5">
+                      <div>
+                        <h3 className="font-extrabold text-xl text-gray-900">{r.hotel_nome}</h3>
+                        <span className="hidden sm:inline-block text-sm text-primary-700 font-mono bg-primary-50 border border-primary-100 px-2.5 py-1 rounded-md mt-1">{r.codigo}</span>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold uppercase tracking-wider shadow-sm ${StatusReservaColors[r.status]}`}>
+                          {r.status === 'CHIN' && <CheckCircle className="h-3.5 w-3.5" />}
+                          {r.status === 'CANC' && <X className="h-3.5 w-3.5" />}
+                          {r.status === 'PEND' && <Clock className="h-3.5 w-3.5" />}
+                          {StatusReservaLabels[r.status]}
+                        </span>
+                      </div>
+                    </div>
 
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold ${StatusReservaColors[r.status]}`}>
-                      {r.status === 'CHIN' && <CheckCircle className="h-3 w-3" />}
-                      {r.status === 'CANC' && <X className="h-3 w-3" />}
-                      {r.status === 'PEND' && <Clock className="h-3 w-3" />}
-                      {StatusReservaLabels[r.status]}
-                    </span>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                      <div className="flex items-center gap-2.5 text-gray-700 font-medium">
+                        <BedDouble className="h-5 w-5 text-primary-500" />
+                        <span className="truncate">{r.categoria_nome}</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-gray-700 font-medium">
+                        <Calendar className="h-5 w-5 text-primary-500" />
+                        <span className="truncate">{formatDate(r.dataEntrada)} - {formatDate(r.dataSaida)}</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-gray-700 font-medium">
+                        <Users className="h-5 w-5 text-primary-500" />
+                        <span>{r.numHospedes} hóspede{r.numHospedes > 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-gray-700 font-medium">
+                        <DollarSign className="h-5 w-5 text-primary-500" />
+                        <span>{formatCurrency(r.valorTotal)}</span>
+                      </div>
+                    </div>
 
                     {canCancel(r.status) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        isLoading={cancellingId === r.id}
-                        onClick={() => handleCancel(r.id)}
-                        className="text-red-500 border-red-200 hover:bg-red-50"
-                      >
-                        <AlertCircle className="h-3 w-3" />
-                        Cancelar
-                      </Button>
+                      <div className="mt-5 flex justify-end border-t border-gray-50 pt-4">
+                        <Button
+                          variant="outline"
+                          isLoading={cancellingId === r.id}
+                          onClick={() => handleCancel(r.id)}
+                          className="text-red-500 border-red-200 hover:bg-red-50 font-bold px-6"
+                        >
+                          <AlertCircle className="h-4 w-4" />
+                          Cancelar Reserva
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
