@@ -7,6 +7,7 @@ skinparam shadowing false
 skinparam defaultFontName Segoe UI
 skinparam defaultFontSize 12
 skinparam classAttributeIconSize 0
+skinparam linetype ortho
 
 skinparam class {
     BackgroundColor White
@@ -35,7 +36,7 @@ skinparam enum {
 package "Controle de Acesso" #EEF2FF {
 
     abstract class Usuario {
-        - id : String
+        - id : Integer
         - primeiroNome : String
         - ultimoNome : String
         - email : String
@@ -47,14 +48,11 @@ package "Controle de Acesso" #EEF2FF {
         - endereco : Endereco
         - cpf : String
         - role : Role
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
         ..
         + cadastrar() : void
         + login() : Token
         + logout() : void
         + atualizarDados() : void
-        + alterarAssinatura() : void
     }
 
     class Endereco {
@@ -98,7 +96,6 @@ package "Controle de Acesso" #EEF2FF {
         ..
         + consultarDashboard() : Dashboard
         + emitirRelatorioFaturamento(dataInicio : Date, dataFim : Date) : Relatorio
-        + gerarRelatorioOcupacao(dataInicio : Date, dataFim : Date) : Relatorio
         + gerenciarTarifas() : void
         + gerenciarHospedes() : void
     }
@@ -115,32 +112,29 @@ package "Controle de Acesso" #EEF2FF {
     Usuario    <|-- Supervisor
     Supervisor <|-- Gestor
     Role       <.. Usuario : define >
-    Usuario  -up->  Endereco : possui >
+    Usuario  -->  Endereco : possui >
 }
 
 ' ─────────────────────────────────────────
 package "Hospedagem e Infraestrutura" #E8F5E9 {
 
     class Hotel {
-        - id : String
+        - id : Integer
         - nome : String
         - cnpj : String
         - endereco : Endereco
         - telefoneContato : String
         - emailContato : String
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
         ..
         + atualizarDados() : void
     }
 
     class CategoriaQuarto {
-        - id : String
+        - id : Integer
         - nome : String
         - descricao : String
         - capacidade : Integer
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
+        - precoBase : Decimal
         ..
         + criar() : void
         + atualizar() : void
@@ -149,12 +143,12 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
     }
 
     class Quarto {
-        - id : String
+        - id : Integer
         - numero : String
         - andar : Integer
         - status : StatusQuarto
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
+        - dataAlteracao : DateTime
+        - usuarioAlteracao : Usuario
         ..
         + cadastrar() : void
         + atualizarStatus(novoStatus : StatusQuarto) : void
@@ -163,22 +157,22 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
     }
 
     class Reserva {
-        - id : String
+        - id : Integer
         - codigo : String
         - dataEntrada : Date
         - dataSaida : Date
         - status : StatusReserva
         - numHospedes : Integer
-        - valorTotal : Double
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
+        - valorTotal : Decimal
+        - observacoes : String
+        - identidadeVerificada : Boolean
         ..
         + criar() : void
         + cancelar() : void
         + confirmar() : void
         + realizarCheckIn() : void
         + realizarCheckOut() : void
-        + calcularValorTotal() : Double
+        + calcularValorTotal() : Decimal
         + verificarDisponibilidade() : boolean
     }
 
@@ -201,55 +195,49 @@ package "Hospedagem e Infraestrutura" #E8F5E9 {
 
     Hotel "1" --> "1" Endereco : localizado em >
     Quarto "*" --> "1" CategoriaQuarto : pertence a >
-    Reserva "*" --> "1" Quarto : aloca >
+    Reserva "*" --> "0..1" Quarto : aloca >
 
-    StatusQuarto <.up. Quarto
-    StatusReserva <.. Reserva
+    StatusQuarto <.. Quarto
+    StatusReserva <.right. Reserva
 }
 
 ' ─────────────────────────────────────────
 package "Financeiro" #FFF3E0 {
 
     class Conta {
-        - id : String
+        - id : Integer
         - dataAbertura : DateTime
         - dataFechamento : DateTime
-        - totalAcumulado : Double
+        - totalAcumulado : Decimal
         - status : StatusConta
         - nomeTitular : String
         - cpfTitular : String
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
         ..
         + abrir() : void
         + fechar() : void
         + adicionarDespesa(despesa : Despesa) : void
-        + calcularTotal() : Double
+        + calcularTotal() : Decimal
         + obterExtrato() : List<Despesa>
     }
 
     class Despesa {
-        - id : String
+        - id : Integer
         - descricao : String
-        - valor : Double
+        - valor : Decimal
         - categoria : CategoriaDespesa
         - dataHora : DateTime
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
         ..
         + criar() : void
-        + calcularSubtotal() : Double
+        + calcularSubtotal() : Decimal
     }
 
     class Produto {
-        - id : String
+        - id : Integer
         - nome : String
         - descricao : String
         - categoria : String
-        - precoAtual : Double
+        - precoAtual : Decimal
         - ativo : Boolean
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
         ..
         + cadastrar() : void
         + atualizar() : void
@@ -272,22 +260,20 @@ package "Financeiro" #FFF3E0 {
 
     Conta "1" o-- "0..*" Despesa : contém >
 
-    Despesa "*" -left-> "0..1" Produto : referencia >
+    Despesa "*" -right-> "0..1" Produto : referencia >
 
     Conta .left.> StatusConta
-    Despesa .right.> CategoriaDespesa
+    Despesa .left.> CategoriaDespesa
 }
 
 package "Tarifas e Manutenção" #F3E5F5 {
 
     class Tarifa {
-        - id : String
-        - valorDiaria : Double
+        - id : Integer
+        - valorDiaria : Decimal
         - dataInicio : Date
         - dataFim : Date
         - tipoTemporada : TipoTemporada
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
         ..
         + criar() : void
         + atualizar() : void
@@ -296,14 +282,13 @@ package "Tarifas e Manutenção" #F3E5F5 {
     }
 
     class Manutencao {
-        - id : String
+        - id : Integer
         - dataInicio : Date
         - dataFim : Date
         - motivo : MotivoManutencao
         - descricao : String
         - status : StatusManutencao
-        - dataCriacao : DateTime
-        - dataAtualizacao : DateTime
+        - statusAnterior : String
         ..
         + criar() : void
         + finalizar() : void
@@ -311,37 +296,37 @@ package "Tarifas e Manutenção" #F3E5F5 {
     }
 
     enum TipoTemporada {
-            ALTA
-            BAIXA
-        }
-
-        enum MotivoManutencao {
-            PREVENTIVA
-            CORRETIVA
-            LIMPEZA
-        }
-
-        enum StatusManutencao {
-            AGENDADA
-            EM_ANDAMENTO
-            CONCLUIDA
-            CANCELADA
-        }
-
-        TipoTemporada    <.left. Tarifa
-        MotivoManutencao <.left. Manutencao
-        StatusManutencao <.left. Manutencao
+        ALTA
+        BAIXA
     }
 
+    enum MotivoManutencao {
+        PREVENTIVA
+        CORRETIVA
+        LIMPEZA
+    }
 
-    Reserva    "*"   -->  "1"    Hospede      : solicitada por >
+    enum StatusManutencao {
+        AGENDADA
+        EM_ANDAMENTO
+        CONCLUIDA
+        CANCELADA
+    }
+
+    TipoTemporada    <.. Tarifa
+    MotivoManutencao <.left. Manutencao
+    StatusManutencao <.. Manutencao
+}
+
+
+    Reserva    "*"   -->  "1"    Usuario      : solicitada por >
     Reserva    "1"   -->  "0..1" Conta        : gera >
     Supervisor "*"   -->  "1"    Hotel        : administra >
     Atendente  "*"   -->  "1"    Hotel        : trabalha no >
     CategoriaQuarto "1" --> "1..*" Tarifa     : possui >
-    Manutencao "*" -up-> "1" Quarto : referente ao >
-    
+    Manutencao "*" --> "1" Quarto : referente ao >
+    Manutencao "*" -right->  "1" Hotel : pertence ao >
 
-    Hotel "1" o-- "0..*" Manutencao : gerencia >
-    
+    Hotel "1" o-up- "0..*" Manutencao : gerencia >
+
 @enduml

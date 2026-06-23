@@ -1,0 +1,11 @@
+.venv
+venv/
+venv/lib/
+.env
+
+_pycache_/
+*.pyc
+
+db.sqlite3
+
+AGENTS.md

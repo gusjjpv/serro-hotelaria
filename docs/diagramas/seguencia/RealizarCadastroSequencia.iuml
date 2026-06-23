@@ -15,64 +15,65 @@ skinparam sequence {
 }
 
 actor "Usuário" as user
-boundary "view : TelaLogin" as tela
-control "ctrl : AuthController" as ctrl
+boundary "view : TelaCadastro" as tela
+control "ctrl : CadastroController" as ctrl
+entity "usuario : Usuario" as usuario
 database "db : BancoDeDados" as db
 
-user -> tela : 1. acessarTelaLogin()
+user -> tela : P.01 acessarTelaCadastro()
 activate tela
-tela -->> user : exibirFormularioLogin()
+tela -->> user : P.02 exibirFormularioCadastro()
 
-opt A01: Esqueci Minha Senha
-    user -> tela : clicarEmEsqueciSenha()
-    tela -->> user : solicitarEmailRecuperacao()
-    user -> tela : informarEmail(email)
-    
-    tela -> ctrl : processarRecuperacaoSenha(email)
-    activate ctrl
-    
-    ctrl -> db : verificarEmailExistente(email)
-    activate db
-    db -->> ctrl : dadosUsuarioRetornados (ou nulo)
-    deactivate db
-    
-    ctrl -> ctrl : gerarTokenEEnviarEmail()
-    
-    ctrl -->> tela : confirmacaoProcessamento
-    deactivate ctrl
-    
-    tela -->> user : exibirMensagem("Se o e-mail existir, você receberá as instruções.")
-end
-
-user -> tela : 2. informarCredenciais(email, senha)
-tela -> ctrl : 3. autenticarUsuario(email, senha)
+user -> tela : P.03 informarDados(dadosCadastro)
+tela -> ctrl : P.04 validarECadastrar(dadosCadastro)
 activate ctrl
 
-ctrl -> db : buscarCredenciaisPorEmail(email)
-activate db
-db -->> ctrl : hashSenhaEDadosUsuario (ou nulo)
-deactivate db
+ctrl -> ctrl : P.05 validarDados(dadosCadastro)
 
-ctrl -> ctrl : validarHashSenha(senha, hashBanco)
+alt E01: Dados Inválidos
+    ctrl -->> tela : E.01 erro("Dados inválidos")
+    tela -->> user : E.02 exibirMensagemErro(camposInvalidos)
 
-alt E01: Credenciais Inválidas ou Usuário Não Encontrado
-    ctrl -->> tela : erro("E-mail ou senha incorretos")
-    tela -->> user : exibirMensagemErro()
-
-else P01: Autenticação Aprovada
-    ctrl -> db : registrarLogAcesso(idUsuario, dataHoraAtual)
+else P01: Dados Válidos
+    ctrl -> db : P.06 verificarEmailExistente(dadosCadastro.email)
     activate db
-    db -->> ctrl : idLogRegistrado
+    db -->> ctrl : P.07 emailExiste ()
     deactivate db
 
-    create entity "usuarioLogado : Usuario" as entidade
-    ctrl -> entidade : <<create>> instanciarUsuario(dadosUsuario)
-    entidade -->> ctrl : instanciaCriada
-    
-    ctrl -->> tela : tokenSessao, perfilAcesso (Role)
-    deactivate ctrl
-    
-    tela -->> user : 4. redirecionarParaDashboard(perfilAcesso)
+    alt E02: Email já cadastrado
+        ctrl -->> tela : E.03 erro("Email já cadastrado")
+        tela -->> user : E.04 exibirMensagemErro()
+
+    else P02: Email disponível
+        ctrl -> db : P.08 verificarCpfExistente(dadosCadastro.cpf)
+        activate db
+        db -->> ctrl : P.09 cpfExiste ()
+        deactivate db
+
+        alt E03: CPF já cadastrado
+            ctrl -->> tela : E.05 erro("CPF já cadastrado")
+            tela -->> user : E.06 exibirMensagemErro()
+
+        else P03: CPF disponível
+            create entity "novoUsuario : Usuario" as novoUsuario
+            ctrl -> novoUsuario : P.10 <<create>> (new Usuario)
+            activate novoUsuario
+            
+            novoUsuario -->> ctrl : P.11 usuarioInstanciado
+            
+            deactivate novoUsuario
+
+            ctrl -> db : P.12 inserirUsuario(novoUsuario.dados)
+            activate db
+            db -->> ctrl : P.13 idUsuarioGerado
+            deactivate db
+
+            ctrl -->> tela : P.14 cadastroRealizado
+            deactivate ctrl
+
+            tela -->> user : P.15 exibirMensagemSucesso()
+        end
+    end
 end
 
 deactivate tela

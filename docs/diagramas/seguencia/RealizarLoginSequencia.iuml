@@ -1,0 +1,80 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+skinparam maxmessagesize 150
+
+skinparam sequence {
+    LifeLineBorderColor #4A4A4A
+    LifeLineBackgroundColor #F9F9F9
+    GroupBorderColor #000000
+    GroupHeaderFontColor Black
+    GroupHeaderBackgroundColor #1565C0
+    ActorBorderColor #4A4A4A
+    ParticipantBorderColor #4A4A4A
+    ParticipantBackgroundColor White
+}
+
+actor "Usuário" as user
+boundary "view : TelaLogin" as tela
+control "ctrl : AuthController" as ctrl
+database "db : BancoDeDados" as db
+
+user -> tela : 1. acessarTelaLogin()
+activate tela
+tela -->> user : exibirFormularioLogin()
+
+opt A01: Esqueci Minha Senha
+    user -> tela : clicarEmEsqueciSenha()
+    tela -->> user : solicitarEmailRecuperacao()
+    user -> tela : informarEmail(email)
+    
+    tela -> ctrl : processarRecuperacaoSenha(email)
+    activate ctrl
+    
+    ctrl -> db : verificarEmailExistente(email)
+    activate db
+    db -->> ctrl : dadosUsuarioRetornados (ou nulo)
+    deactivate db
+    
+    ctrl -> ctrl : gerarTokenEEnviarEmail()
+    
+    ctrl -->> tela : confirmacaoProcessamento
+    deactivate ctrl
+    
+    tela -->> user : exibirMensagem("Se o e-mail existir, você receberá as instruções.")
+end
+
+user -> tela : 2. informarCredenciais(email, senha)
+tela -> ctrl : 3. autenticarUsuario(email, senha)
+activate ctrl
+
+ctrl -> db : buscarCredenciaisPorEmail(email)
+activate db
+db -->> ctrl : hashSenhaEDadosUsuario (ou nulo)
+deactivate db
+
+ctrl -> ctrl : validarHashSenha(senha, hashBanco)
+
+alt E01: Credenciais Inválidas ou Usuário Não Encontrado
+    ctrl -->> tela : erro("E-mail ou senha incorretos")
+    tela -->> user : exibirMensagemErro()
+
+else P01: Autenticação Aprovada
+    ctrl -> db : registrarLogAcesso(idUsuario, dataHoraAtual)
+    activate db
+    db -->> ctrl : idLogRegistrado
+    deactivate db
+
+    create entity "usuarioLogado : Usuario" as entidade
+    ctrl -> entidade : <<create>> instanciarUsuario(dadosUsuario)
+    entidade -->> ctrl : instanciaCriada
+    
+    ctrl -->> tela : tokenSessao, perfilAcesso (Role)
+    deactivate ctrl
+    
+    tela -->> user : 4. redirecionarParaDashboard(perfilAcesso)
+end
+
+deactivate tela
+
+@enduml

@@ -1,69 +1,61 @@
 @startuml
 
-|Hóspede|
-|Sistema SERRÔ|
-|Gateway de Pagamento|
-
-|Hóspede|
+|Usuário|
 start
 :Acessar opção "Realizar Reserva";
 
 |Sistema SERRÔ|
-:Solicitar datas de entrada, saída\ne tipo de acomodação;
+:Solicitar datas de entrada, saída\ne quantidade de hóspedes;
 
-|Hóspede|
+|Usuário|
 :Informar os dados solicitados;
 
 |Sistema SERRÔ|
-:Verificar disponibilidade de quartos;
+while (Dados completos e válidos?) is (Não)
+    :Exibir mensagem de erro\ncom campos pendentes;
+    |Usuário|
+    :Corrigir dados;
+endwhile
 
-if (Quartos disponíveis no período?) then (Não)
-    :Exibir mensagem de erro:\n"Não há quartos disponíveis";
+|Sistema SERRÔ|
+:Consultar disponibilidade de Quartos;
+
+
+
+|Sistema SERRÔ|
+if (Quartos disponíveis e liberados?) then (Sim)
+    :Obter tarifa vigente;
+    :Calcular valor total da estadia;
+    :Exibir opções de quartos e resumo de valores;
+else (Não)
+    :Exibir mensagem:\n"Não há quartos disponíveis para o período";
     stop
-else (Sim)
-    :Exibir opções de quartos livres;
 endif
 
-|Hóspede|
-if (Deseja continuar com a reserva?) then (Não)
+|Usuário|
+:Selecionar quarto;
+
+if (Confirmar intenção de reserva?) then (Não)
+
     |Sistema SERRÔ|
     :Limpar dados temporários da sessão;
-    :Redirecionar usuário para menu inicial;
+    :Redirecionar para tela inicial;
     stop
+
 else (Sim)
-    |Hóspede|
-    :Selecionar o quarto desejado;
+    :Exibir tela de resumo da Reserva;
 endif
 
 |Sistema SERRÔ|
-:Apresentar resumo da reserva\ne valor total;
-
-repeat
-    |Hóspede|
-    :Confirmar dados e escolher\nforma de pagamento (PIX ou Cartão);
-    
-    |Sistema SERRÔ|
-    :Enviar dados da transação financeira;
-    
-    |Gateway de Pagamento|
-    :Validar dados do cartão/saldo;
-    
-|Sistema SERRÔ|
-repeat while (Pagamento Aprovado?) is (Não - Exibir motivo da falha)
--> Sim;
-
-|Sistema SERRÔ|
-:Registrar reserva no banco\ncom status "Confirmada";
 
 fork
-    :Gerar Voucher digital;
+    :Vincular Quarto à Reserva;
+    :Gerar código único da Reserva;
 fork again
-    :Enviar confirmação por e-mail;
+    :Abrir nova Conta de Hospedagem;
 fork again
-    :Bloquear o quarto\npara novas reservas;
-fork again
-    :Abrir "Conta de Hospedagem"\nautomaticamente;
-end merge
+    :Enviar voucher de confirmação\npor e-mail;
+end fork
 
 stop
 @enduml

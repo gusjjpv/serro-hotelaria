@@ -1,0 +1,49 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam shadowing true
+skinparam ranksep 60
+
+skinparam node {
+    BackgroundColor White
+    BorderColor Black
+    FontColor Black
+    FontStyle bold
+}
+
+skinparam artifact {
+    BackgroundColor #F5F5F5
+    BorderColor Gray
+    FontColor Black
+}
+
+skinparam database {
+    BackgroundColor #F5F5F5
+    BorderColor Gray
+    FontColor Black
+}
+
+' 1. Camada de Cliente
+node "Cliente" as n_cliente {
+    artifact "Navegador Web" as a_nav
+}
+
+' 2. Camada de Frontend
+node "Servidor Frontend" as n_front {
+    artifact "Aplicação React" as a_react
+}
+
+' 3. Camada de Backend
+node "Servidor Backend" as n_back {
+    artifact "Django API REST" as a_django
+}
+
+' 4. Camada de Dados
+node "Servidor Banco de Dados" as n_bd {
+    database "SQLite3" as d_sqlite
+}
+
+n_cliente --> n_front : HTTP/HTTPS
+n_front --> n_back : REST/JSON
+n_back --> n_bd : Django ORM
+
+@enduml
