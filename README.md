@@ -4,30 +4,30 @@
 
 **Sistema de Gerenciamento Hoteleiro**
 
+![Status](https://img.shields.io/badge/Status-Concluído%20(MVP)-success)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-6.0-092E20?style=flat&logo=django&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
+![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat&logo=sqlite&logoColor=white)
 
 </div>
 
 ---
 
-## 📑 Sumário
+## Sumário
 
-- [Sobre o Projeto](#-sobre-o-projeto)
-- [Principais Funcionalidades](#-principais-funcionalidades)
-- [Atores do Sistema](#-atores-do-sistema)
-- [Tecnologias](#-tecnologias)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Pré-requisitos](#-pré-requisitos)
-- [Instalação](#-instalação)
-- [Variáveis de Ambiente](#-variáveis-de-ambiente)
-- [Execução](#-execução)
-- [Testes](#-testes)
-- [Equipe](#-equipe)
-- [Licença](#-licença)
+- [Sobre o Projeto](#sobre-o-projeto)
+- [Principais Funcionalidades](#principais-funcionalidades)
+- [Atores do Sistema](#atores-do-sistema)
+- [Tecnologias](#tecnologias)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Pré-requisitos](#pré-requisitos)
+- [Instalação](#instalação)
+- [Variáveis de Ambiente](#variáveis-de-ambiente)
+- [Execução](#execução)
+- [Equipe](#equipe)
 
 ---
 
@@ -93,11 +93,11 @@ O sistema cobre desde a **busca e reserva de quartos** até o **controle finance
 |------------|-----|
 | Git | Controle de versão |
 | GitHub | Hospedagem do repositório |
-| AWS | Deploy (planejado) |
+| AWS | Deploy |
 
 ---
 
-## 📁 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 serro-hotelaria/

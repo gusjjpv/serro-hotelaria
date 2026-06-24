@@ -2,6 +2,8 @@
 skinparam shadowing true
 skinparam componentStyle uml1
 skinparam defaultFontName Arial
+skinparam nodesep 40
+skinparam ranksep 60
 
 left to right direction
 
@@ -23,26 +25,42 @@ skinparam interface {
     BorderColor Black
 }
 
+
 node "Cliente: Navegador Web" as n_cliente {
-    package "Frontend (React)" {
-        component "Interface\nReact SPA" as c_front
+    package "Frontend (React SPA)" {
+        component "Shared\n(UI Components)" as c_shared_fe
+        component "Public" as c_public
+        component "Auth" as c_auth_fe
+        component "Hóspede" as c_hosp_fe
+        component "Admin" as c_admin_fe
+        component "Services\n(HTTP Client)" as c_svc_fe
+
+        c_public .left.> c_shared_fe
+        c_auth_fe .left.> c_shared_fe
+        c_hosp_fe .left.> c_shared_fe
+        c_admin_fe ..> c_shared_fe
+
+        c_public .right.> c_svc_fe
+        c_auth_fe .right.> c_svc_fe
+        c_hosp_fe ..> c_svc_fe
+        c_admin_fe ..> c_svc_fe
     }
 }
 
 
-
 node "Servidor de Aplicação" as n_servidor {
-    
+    component "Autenticação\n(SimpleJWT)" as c_jwt
+
     package "API REST (Django Apps)" {
         interface " " as i_acc
         interface " " as i_hosp
         interface " " as i_fin
         interface " " as i_tar
 
-        component "Controle de\nAcesso" as c_acc
-        component "Hospedagem e\nInfraestrutura" as c_hosp
-        component "Financeiro" as c_fin
-        component "Tarifas e\nManutenção" as c_tar
+        component "Controle de Acesso\n--\nViews | Services | Models" as c_acc
+        component "Hospedagem e Infra.\n--\nViews | Services | Models" as c_hosp
+        component "Financeiro\n--\nViews | Services | Models" as c_fin
+        component "Tarifas e Manutenção\n--\nViews | Models" as c_tar
 
         i_acc - c_acc
         i_hosp - c_hosp
@@ -53,29 +71,32 @@ node "Servidor de Aplicação" as n_servidor {
 
 
 node "Servidor Banco de Dados" as n_bd {
-    
-    package "Camada de Dados" {
-        interface " " as i_pers
-        component "Persistência\n(Django ORM)" as c_orm
-        component "SGBD SQLite" as c_sgbd
+    interface " " as i_db
+    component "Persistência\n(Django ORM)" as c_orm
+    component "SGBD SQLite3" as c_sgbd
 
-        i_pers - c_orm
-        c_orm ..> c_sgbd
-    }
+    i_db - c_orm
+    c_orm ..> c_sgbd
+}
+
+=
+node "Serviços Externos" as n_ext {
+    component "Gmail SMTP" as c_gmail
 }
 
 
-n_cliente -- n_servidor : <<HTTP>>
-n_servidor -- n_bd : <<Conexão BD>>
+c_svc_fe ..> c_jwt : Token JWT
+c_svc_fe ..> i_acc : REST/JSON
+c_svc_fe ..> i_hosp
+c_svc_fe ..> i_fin
+c_svc_fe ..> i_tar
 
-c_front ..> i_acc
-c_front ..> i_hosp
-c_front ..> i_fin
-c_front ..> i_tar
+c_acc ..> i_db
+c_hosp ..> i_db
+c_fin ..> i_db
+c_tar ..> i_db
 
-c_acc .down.> i_pers
-c_hosp .down.> i_pers
-c_fin .down.> i_pers
-c_tar .down.> i_pers
+c_acc .up.> c_gmail : SMTP
+c_hosp ..> c_gmail : SMTP
 
 @enduml
