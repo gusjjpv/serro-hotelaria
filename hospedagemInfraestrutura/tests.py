@@ -618,7 +618,7 @@ class ReservaCreateAPITest(BaseAPITest):
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(response.data['codigo'].startswith('RES'))
-        self.assertEqual(response.data['status'], 'PEND')
+        self.assertEqual(response.data['status'], 'CONF')
         self.assertIsNotNone(response.data['quarto'])
         self.assertGreater(Decimal(str(response.data['valorTotal'])), 0)
 

@@ -8,6 +8,7 @@ usuario <|-right- atendente
 
 rectangle "Caso de uso - Atendente" {
     package "Recepção e Governança" {
+        usecase "Consultar quartos disponíveis" as uc01
         usecase "Gerenciar Check-in/out Presencial" as uc07
         usecase "Atualizar Status do Quarto (Ocupação)" as uc10
     }
@@ -15,7 +16,8 @@ rectangle "Caso de uso - Atendente" {
     package "Financeiro" {
         usecase "Lançar Consumo na Conta do Quarto" as uc09
     }
-
+    
+    atendente -- uc01
     atendente -- uc07
     atendente -- uc10
     atendente -- uc09

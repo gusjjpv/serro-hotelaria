@@ -63,7 +63,7 @@ export function CheckInOnlinePage() {
     }
   }
 
-  const disponibles = reservas.filter(r => r.status === 'PEND' || r.status === 'CONF')
+  const disponibles = reservas.filter(r => r.status === 'CONF')
 
   return (
     <motion.div

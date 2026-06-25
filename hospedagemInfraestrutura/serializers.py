@@ -235,6 +235,7 @@ class ReservaCreateSerializer(serializers.ModelSerializer):
             validated_data['dataSaida'],
         )
         validated_data['quarto'] = quarto
+        validated_data['status'] = 'CONF'
         return super().create(validated_data)
 
 
